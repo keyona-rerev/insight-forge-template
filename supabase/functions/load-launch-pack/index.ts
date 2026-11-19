@@ -261,7 +261,7 @@ serve(async (req) => {
     })));
     const readerRows = await insertAll("readers", pack.readers.map((r: any, i: number) => ({
       user_id: uid, key: keyOf(r.key ?? r.role), role: str(r.role), who: str(r.who) || null,
-      side: str(r.side) || "decision", lane_scope: str(r.lane_scope) || null,
+      side: str(r.side) || "decision", lane_scope: str(r.lane_scope) ? keyOf(r.lane_scope) : "both",
       avatar_initials: str(r.role).split(/\s+/).map((w: string) => w[0]).join("").slice(0, 2).toUpperCase() || null,
       is_active: true, sort_order: i,
     })));
@@ -306,7 +306,7 @@ serve(async (req) => {
     else {
       const { error } = await db.from("seeds").insert(pack.seeds.map((s: any, i: number) => ({
         user_id: uid, premise: str(s.premise), category: str(s.category) || null,
-        suggested_nature_key: s.nature ? keyOf(s.nature) : null, lane_scope: str(s.lane) || null,
+        suggested_nature_key: s.nature ? keyOf(s.nature) : null, lane_scope: str(s.lane) ? keyOf(s.lane) : "both",
         is_active: true, sort_order: i,
       })));
       if (error) throw new Error(`seeds: ${error.message}`);
