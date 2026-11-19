@@ -25,6 +25,7 @@ import QuestionSets from "./pages/QuestionSets";
 import QuestionSetEditor from "./pages/QuestionSetEditor";
 import VisualStudio from "./pages/VisualStudio";
 import HealthCheck from "./pages/HealthCheck";
+import LaunchPack from "./pages/LaunchPack";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/visual-studio" element={<ProtectedRoute><VisualStudio /></ProtectedRoute>} />
+              <Route path="/launch" element={<ProtectedRoute><LaunchPack /></ProtectedRoute>} />
               <Route path="/health-check" element={<ProtectedRoute><HealthCheck /></ProtectedRoute>} />
               <Route path="/strategy" element={<ProtectedRoute><Strategy /></ProtectedRoute>} />
               {/* Audience merged into Strategy; keep the old URL working */}
