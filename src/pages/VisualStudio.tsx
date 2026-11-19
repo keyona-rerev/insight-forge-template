@@ -532,7 +532,7 @@ const VisualStudio = () => {
                   className="rounded-md px-4 py-3 text-white text-xl leading-snug"
                   style={{ background: config.color_background, fontFamily: `'${activeDisplayFont}', sans-serif`, fontWeight: displayWeight }}
                 >
-                  Half of deposits leave when children inherit.
+                  A clear headline sets the tone for the post.
                 </div>
               </div>
 
@@ -561,7 +561,7 @@ const VisualStudio = () => {
                   className="rounded-md px-4 py-3 leading-relaxed"
                   style={{ background: config.color_background, color: "rgba(255,255,255,0.85)", fontFamily: `'${activeBodyFont}', sans-serif`, fontWeight: "400", fontSize: "15px" }}
                 >
-                  The gap lives in the checking account, the CD ladder, the savings account tied to a beneficiary designation not reviewed in eleven years.
+                  Body text sits under the headline. It should read easily at small sizes, in a few short lines.
                 </div>
               </div>
             </div>
