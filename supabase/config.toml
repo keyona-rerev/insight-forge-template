@@ -60,3 +60,6 @@ verify_jwt = false
 
 [functions.detect-logo]
 verify_jwt = true
+
+[functions.load-launch-pack]
+verify_jwt = true
