@@ -132,6 +132,10 @@ const VisualStudio = () => {
   const [showCustomBody, setShowCustomBody] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [websiteInput, setWebsiteInput] = useState("");
+  const [findingLogo, setFindingLogo] = useState(false);
+  const [logoFound, setLogoFound] = useState<{ source: string } | null>(null);
+  const [logoBroken, setLogoBroken] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const previewBoxRef = useRef<HTMLDivElement>(null);
   const [previewBoxWidth, setPreviewBoxWidth] = useState(0);
@@ -307,6 +311,8 @@ const VisualStudio = () => {
       if (uploadError) throw uploadError;
       const { data: pub } = supabase.storage.from("brand-assets").getPublicUrl(path);
       if (!pub?.publicUrl) throw new Error("Could not get a public URL for the uploaded logo");
+      setLogoBroken(false);
+      setLogoFound(null);
       setConfig(c => ({ ...c, logo_url: pub.publicUrl }));
       toast.success("Logo uploaded.");
     } catch (err: any) {
@@ -314,6 +320,33 @@ const VisualStudio = () => {
     } finally {
       setUploading(false);
       if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  };
+
+  // Finds the logo on the business's own website and hosts a copy in the
+  // brand-assets bucket (detect-logo edge function). The result is applied
+  // to the in-memory config only. The owner still presses Save to keep it.
+  const handleFindLogo = async () => {
+    const website = websiteInput.trim();
+    if (!website) { toast.error("Enter the website address first"); return; }
+    setFindingLogo(true);
+    setLogoFound(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("detect-logo", { body: { website } });
+      if (error) {
+        let msg = error.message;
+        try { const j = await (error as any).context?.json?.(); if (j?.error) msg = j.error; } catch { /* keep default */ }
+        throw new Error(msg);
+      }
+      if (!data?.logo_url) throw new Error(data?.error || "No logo found");
+      setLogoBroken(false);
+      setConfig(c => ({ ...c, logo_url: data.logo_url }));
+      setLogoFound({ source: data.source });
+      toast.success("Logo found. Check it, then press Save.");
+    } catch (err: any) {
+      toast.error(err.message || "Could not find a logo");
+    } finally {
+      setFindingLogo(false);
     }
   };
 
@@ -597,20 +630,62 @@ const VisualStudio = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4 rounded-md border bg-muted/30 p-3">
-              <div
-                className="w-20 h-10 rounded flex items-center justify-center text-xs font-medium tracking-widest flex-shrink-0"
-                style={{ background: config.color_background, color: config.color_sparing_accent }}
-              >LOGO</div>
+              {config.logo_url && !logoBroken ? (
+                <div
+                  className="w-24 h-14 rounded flex items-center justify-center flex-shrink-0 border overflow-hidden"
+                  style={{ background: config.color_background }}
+                >
+                  <img
+                    src={config.logo_url}
+                    alt="Current logo"
+                    className="max-w-full max-h-full object-contain"
+                    onError={() => setLogoBroken(true)}
+                  />
+                </div>
+              ) : (
+                <div
+                  className="w-24 h-14 rounded flex items-center justify-center text-xs font-medium tracking-widest flex-shrink-0"
+                  style={{ background: config.color_background, color: config.color_sparing_accent }}
+                >NO LOGO</div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium">Current logo</p>
-                <p className="text-xs text-muted-foreground truncate mt-0.5">{config.logo_url || "No logo set yet"}</p>
+                <p className="text-xs text-muted-foreground truncate mt-0.5" title={config.logo_url}>{logoBroken ? "The saved link does not load as an image. Find or upload a new logo." : (config.logo_url || "No logo set yet")}</p>
               </div>
-              <div>
+              <div className="flex flex-col gap-2">
+                {config.logo_url && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { navigator.clipboard.writeText(config.logo_url).then(() => toast.success("Logo link copied."), () => toast.error("Could not copy. Select the link and copy it.")); }}
+                  >Copy link</Button>
+                )}
                 <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
                 <Button variant="outline" size="sm" disabled={uploading} onClick={() => logoInputRef.current?.click()}>
                   <Upload className="h-3 w-3 mr-1" />{uploading ? "Uploading..." : "Replace"}
                 </Button>
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Find the logo from the business website</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={websiteInput}
+                  onChange={e => setWebsiteInput(e.target.value)}
+                  placeholder="https://yourbusiness.com"
+                  onKeyDown={e => { if (e.key === "Enter") handleFindLogo(); }}
+                />
+                <Button variant="outline" size="sm" disabled={findingLogo} onClick={handleFindLogo}>
+                  {findingLogo ? "Looking..." : "Find logo"}
+                </Button>
+              </div>
+              {logoFound && (
+                <p className="text-xs text-muted-foreground">
+                  Found as: {logoFound.source}.
+                  {logoFound.source === "og:image" ? " This may be a social image, not the logo. Check it before you save." : ""}
+                  {" "}Press Save to keep it. Use Replace if it is wrong.
+                </p>
+              )}
             </div>
             <p className="text-xs text-muted-foreground">
               Uploaded images are stored in your own account folder and served immediately — no rebuild wait.
