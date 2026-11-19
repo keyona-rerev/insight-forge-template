@@ -193,7 +193,7 @@ const LaunchPackPage = () => {
 
         {errors.length > 0 && (
           <div className="mt-6 rounded-md border border-red-300 bg-red-50 p-4 text-sm">
-            <p className="font-medium mb-2">Fix these items. Nothing was loaded.</p>
+            <p className="font-medium mb-2">Fix these items. Then press Load again with Replace my setup on.</p>
             <ul className="list-disc pl-5 space-y-1">
               {errors.map((e, i) => <li key={i}>{e}</li>)}
             </ul>
