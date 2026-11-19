@@ -21,6 +21,7 @@ const Dashboard = () => {
     unapprovedCards: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [noSchedule, setNoSchedule] = useState(false);
   const [flaggedNewsletters, setFlaggedNewsletters] = useState<any[]>([]);
   const [healthOpen, setHealthOpen] = useState(false);
   const [brandColors, setBrandColors] = useState({
@@ -80,6 +81,7 @@ const Dashboard = () => {
         { data: allDrafts, error: draftsError },
         { data: profile, error: profileError },
         { count: unapprovedCards, error: cardsError },
+        { count: slotCount },
       ] = await Promise.all([
         supabase.from("drafts").select("id, approval_status, publish_status, scheduled_for")
           .eq("user_id", userId),
@@ -94,7 +96,10 @@ const Dashboard = () => {
         // generated content to whatever the few approved cards say.
         supabase.from("reference_cards").select("id", { count: "exact", head: true })
           .eq("approved", false),
+        supabase.from("content_schedules").select("id", { count: "exact", head: true })
+          .eq("user_id", userId),
       ]);
+      setNoSchedule((slotCount ?? 0) === 0);
       if (draftsError) throw draftsError;
       if (profileError) throw profileError;
       if (cardsError) throw cardsError;
@@ -230,6 +235,23 @@ const Dashboard = () => {
 
 The dashboard shows your review pipeline and quick access to everything else.`}
         />
+
+        {!loading && noSchedule && (
+          <Card className="mb-8 border-blue-300 bg-blue-50">
+            <CardContent className="p-4 flex items-start gap-3">
+              <div className="flex-1">
+                <p className="font-medium text-blue-900">Your posting schedule is empty.</p>
+                <ul className="text-sm text-blue-800 mt-1 list-disc pl-5 space-y-0.5">
+                  <li>Load the launch pack from Part 1 of setup.</li>
+                  <li>It adds your strategy, sources and schedule, then starts your first 12 drafts.</li>
+                </ul>
+              </div>
+              <Button size="sm" onClick={() => navigate("/launch")} className="shrink-0">
+                Load launch pack
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {!loading && belowThreshold && (
           <Card className="mb-8 border-amber-300 bg-amber-50">
