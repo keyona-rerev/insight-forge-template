@@ -1419,7 +1419,7 @@ const Strategy = () => {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <CardTitle>Natures</CardTitle>
-                <CardDescription>The rhetorical angle: how a post argues and what evidence it leans on. Fit is how well it lands with a banking committee.</CardDescription>
+                <CardDescription>The rhetorical angle: how a post argues and what evidence it leans on. Fit is how well it lands with your readers.</CardDescription>
               </div>
               {naturesEditing ? (
                 <Button size="sm" onClick={() => setNaturesEditing(false)} className="shrink-0">
