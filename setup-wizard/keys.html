@@ -106,7 +106,7 @@ var els={};
 function V(k){return els[k]?els[k].inp.value.trim():""}
 function repo(k){var x=V(k);return /^[\w.-]+\/[\w.-]+$/.test(x)?x:""}
 function yearOut(){var d=new Date();d.setDate(d.getDate()+364);return d.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}
-function need(x,what){if(x)return x;var m=[[/Supabase project ref/i,"SUPABASE_PROJECT_REF_20_LETTERS"],[/app login email/i,"APP_LOGIN_EMAIL"],[/GitHub username/i,"GITHUB_USERNAME"],[/worker repo/i,"WORKER_REPO_OWNER_SLASH_NAME"],[/app repo/i,"APP_REPO_OWNER_SLASH_NAME"],[/the password/i,"APP_LOGIN_PASSWORD"],[/anon public key/i,"SUPABASE_ANON_KEY"],[/User UID/i,"APP_LOGIN_USER_ID"]],k="";m.forEach(function(a){if(!k&&a[0].test(what))k=a[1]});return{miss:"This step needs a value from another card: "+what.replace(/ \(.*\)$/,"")+". The boxes are empty if you reloaded this page.",key:k}}
+function need(x,what){if(x)return x;var m=[[/Supabase project ref/i,"SUPABASE_PROJECT_REF_20_LETTERS"],[/app login email/i,"APP_LOGIN_EMAIL"],[/GitHub username/i,"GITHUB_USERNAME"],[/worker repo/i,"WORKER_REPO_OWNER_SLASH_NAME"],[/app repo/i,"APP_REPO_OWNER_SLASH_NAME"],[/the password/i,"APP_LOGIN_PASSWORD"],[/anon public key/i,"SUPABASE_ANON_KEY"],[/newsletter reader script/i,"GMAIL_SCRIPT_URL"],[/User UID/i,"APP_LOGIN_USER_ID"]],k="";m.forEach(function(a){if(!k&&a[0].test(what))k=a[1]});return{miss:"This step needs a value from another card: "+what.replace(/ \(.*\)$/,"")+". The boxes are empty if you reloaded this page.",key:k}}
 // row kinds: {t:text} plain step | {c:copy-text, l:label} copy box | {p:pick-text, l:label} click this option
 var F=[
 {sec:"A. Required. Nothing works without these.",t:"Claude sign-in token in the GitHub worker",v:"CLAUDE_CODE_OAUTH_TOKEN",req:1,secret:1,
@@ -349,6 +349,32 @@ var F=[
   {t:"Go back to your copy in Apps Script. Click the address bar at the top of the browser, so the whole address is selected. Press Ctrl+C. Click the box below this card. Paste it."}]},
  norm:function(x){var m=x.match(/script\.google\.com\/(?:home\/projects|d)\/([A-Za-z0-9_-]{20,})/);return m?"https://script.google.com/home/projects/"+m[1]+"/edit":x},
  ok:function(x){if(/19ptX84VuLV-4i2BL7d2u3uChpc8WLmE3Bndfd7Tx6RhkLWoef1XPLnk1/.test(x))return"That is the template. Click Make a copy. Paste the address of your copy.";return /^https:\/\/script\.google\.com\/home\/projects\/[A-Za-z0-9_-]{20,}\/edit$/.test(x)||"Should be the web address of your own copy in Apps Script."}},
+{t:"Existing content folder link in Google Drive",v:"SOURCE_FOLDER_URL",req:1,
+ why:["Podcasts, transcripts and posts you already published are your best sources.","Your own words keep the drafts in your voice.","This page only saves the link. It does not read or store the folder."],without:["The install does not know about content you already have."],
+ link:["Open Google Drive","https://drive.google.com/drive/my-drive"],
+ form:function(){
+  var f=V("SOURCE_FOLDER_URL"),has=/^https:\/\/drive\.google\.com\/drive\/folders\//.test(f),gs=V("GMAIL_SCRIPT_URL"),okGs=/^https:\/\/script\.google\.com\/home\/projects\//.test(gs);
+  var rows=[
+  {h:"Option 1. I have a folder with my podcasts, transcripts or published posts."},
+  {t:"Click the button above. Google Drive opens. Sign in with the same Google account you used for the newsletter reader."},
+  {t:"Open the folder that holds the content. If the content is in several folders, open the one that holds the most."},
+  {t:"Click the address bar at the top of the browser. The whole address is selected. Press Ctrl+C."},
+  {t:"Click the box below this card. Paste the address."}];
+  if(!has)rows.push({t:"After you paste the address, the steps for your script appear here."});
+  else{
+    rows.push(okGs?{a:gs,l:"Click this. Your copy of the newsletter reader script opens."}:need("","the address of your newsletter reader script (the card above)"));
+    rows.push({t:"On the left, under Files, click DriveImport.gs."});
+    rows.push({l:"Line 8. Replace PASTE_FOLDER_URL with this address. Click Copy. Paste it between the quote marks.",c:f});
+    rows.push({t:"Click the Save icon (the floppy disk)."});
+    rows.push({t:"At the top, open the function list. Choose importFolder. Click Run."});
+    rows.push({t:"Google asks to review permissions again. Click Review permissions. Choose your Google account. If Google says Google hasn't verified this app: click Advanced. Click Go to Insight Forge Gmail Intake (unsafe). Click Allow."});
+    rows.push({t:"The log at the bottom says Sent and a number. The script reads Google Docs and text files (.txt, .md, .vtt, .srt). It names any file type it skips. The script checks the folder again every day."});
+  }
+  rows.push({h:"Option 2. I have no folder."});
+  rows.push({l:"Click Copy. Paste it into the box below this card.",c:"NONE"});
+  return rows},
+ norm:function(x){var t=x.trim();if(/^none$/i.test(t))return"NONE";var m=t.match(/drive\.google\.com\/drive\/(?:u\/\d+\/)?folders\/([A-Za-z0-9_-]{10,})/);return m?"https://drive.google.com/drive/folders/"+m[1]:x},
+ ok:function(x){return x==="NONE"||/^https:\/\/drive\.google\.com\/drive\/folders\/[A-Za-z0-9_-]{10,}$/.test(x)||"Paste the address of a Google Drive folder. It has /folders/ in it. Or type NONE."}},
 {t:"Resend API key in Supabase",v:"RESEND_API_KEY",req:1,secret:1,
  why:["Turns on alert emails, such as a low review queue.","Resend's test sender delivers only to your Resend account email, so that email must equal the app login email."],
  without:["No alert emails, such as a low review queue alert."],
