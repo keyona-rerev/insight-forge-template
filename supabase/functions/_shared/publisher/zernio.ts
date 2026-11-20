@@ -109,6 +109,12 @@ export class ZernioPublisher implements Publisher {
   }
 
   async getDefaultProfileId(): Promise<string | null> {
+    // Per-install override: an install that shares a Zernio workspace with
+    // other installs binds to its own profile via this secret, so it never
+    // adopts or mutates another install's connected accounts. Unset installs
+    // keep the previous behavior (workspace default profile).
+    const pinned = Deno.env.get("ZERNIO_PROFILE_ID");
+    if (pinned) return pinned;
     const body = await this.#request(`/profiles`);
     const rows: any[] = body?.profiles ?? body?.data ?? [];
     if (!rows.length) return null;
