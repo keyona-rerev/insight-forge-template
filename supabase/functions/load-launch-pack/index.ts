@@ -156,13 +156,22 @@ serve(async (req) => {
     if (!url || !serviceKey) return json(500, { ok: false, errors: ["Server configuration error."] });
     if (!auth) return json(401, { ok: false, errors: ["Sign in first."] });
 
-    const asUser = createClient(url, serviceKey, { global: { headers: { Authorization: auth } } });
-    const { data: { user }, error: authErr } = await asUser.auth.getUser();
-    if (authErr || !user) return json(401, { ok: false, errors: ["Your sign-in expired. Sign in again."] });
-    const uid = user.id;
+    const body = await req.json().catch(() => ({}));
+    // Trusted internal call (same pattern as execute-autopilot-template): the
+    // launch-run function passes the service-role bearer plus the owner's id.
+    let uid: string;
+    let userEmail: string | undefined;
+    if (auth.replace("Bearer ", "") === serviceKey && body?.userId) {
+      uid = String(body.userId);
+    } else {
+      const asUser = createClient(url, serviceKey, { global: { headers: { Authorization: auth } } });
+      const { data: { user }, error: authErr } = await asUser.auth.getUser();
+      if (authErr || !user) return json(401, { ok: false, errors: ["Your sign-in expired. Sign in again."] });
+      uid = user.id;
+      userEmail = user.email ?? undefined;
+    }
     const db = createClient(url, serviceKey);
 
-    const body = await req.json().catch(() => ({}));
     const pack = body?.pack;
     const replace = body?.replace === true;
 
@@ -204,7 +213,7 @@ serve(async (req) => {
     const { data: prof } = await db.from("profiles").select("id").eq("user_id", uid).maybeSingle();
     const profRes = prof
       ? await db.from("profiles").update(profilePatch).eq("user_id", uid)
-      : await db.from("profiles").insert({ user_id: uid, email: user.email, ...profilePatch });
+      : await db.from("profiles").insert({ user_id: uid, email: userEmail, ...profilePatch });
     if (profRes.error) return json(500, { ok: false, errors: [`Could not save the profile: ${profRes.error.message}`] });
     written.profile = 1;
 

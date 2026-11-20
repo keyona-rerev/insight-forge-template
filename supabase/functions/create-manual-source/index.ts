@@ -34,21 +34,25 @@ serve(async (req) => {
       });
     }
 
-    const supabaseAuth = createClient(supabaseUrl, serviceRoleKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
-
-    if (authError || !user) {
-      console.error("❌ Authentication failed:", authError);
-      return new Response(JSON.stringify({ error: "Invalid or expired authentication token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Trusted internal call (launch-run): service-role bearer plus the owner's id.
+    const peek = await req.clone().json().catch(() => ({}));
+    let user_id: string;
+    if (authHeader.replace("Bearer ", "") === serviceRoleKey && peek?.userId) {
+      user_id = String(peek.userId);
+    } else {
+      const supabaseAuth = createClient(supabaseUrl, serviceRoleKey, {
+        global: { headers: { Authorization: authHeader } },
       });
+      const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+      if (authError || !user) {
+        console.error("❌ Authentication failed:", authError);
+        return new Response(JSON.stringify({ error: "Invalid or expired authentication token" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      user_id = user.id;
     }
-
-    const user_id = user.id;
     console.log("✅ Authenticated user:", user_id);
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);

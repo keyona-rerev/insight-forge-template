@@ -1,19 +1,19 @@
 -- Daily publish sweep.
 -- Prismm runs a daily job that finds approved drafts that never reached the
 -- publisher (for example, approved while LinkedIn was not connected) and
--- schedules them. It was created by hand on Prismm and was in no migration,
--- so a new install did not have it. This migration adds it.
+-- schedules them. It was made by hand on Prismm and was in no migration, so a
+-- new install did not have it. This migration adds it.
 --
--- fire_automation_endpoint now accepts an optional JSON body. Old calls with one
--- argument keep working, because the second argument has a default.
+-- It adds a two-argument fire_automation_endpoint(function_name, payload).
+-- The one-argument function stays as it is, so nothing is dropped and every
+-- existing cron job keeps working. cron.schedule with an existing job name
+-- replaces that job, so running this twice never makes a second job.
 
-drop function if exists public.fire_automation_endpoint(text);
-
-create or replace function public.fire_automation_endpoint(function_name text, payload jsonb default '{}'::jsonb)
+create or replace function public.fire_automation_endpoint(function_name text, payload jsonb)
 returns void
 language plpgsql
 security definer
-set search_path = public
+set search_path to 'public'
 as $$
 declare
   v_url text;
