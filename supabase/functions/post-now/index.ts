@@ -120,9 +120,9 @@ serve(async (req) => {
         if (/404|not found/i.test(msg)) {
           await supabase.from("drafts").update({
             publish_status: "needs_attention",
-            publish_error: "The connected account no longer has the scheduled copy of this post (stale reference after an account change). The original provider id is preserved. Verify the connected account in Settings, then approve or post again.",
+            publish_error: "The connected account no longer has the scheduled copy of this post (stale reference after an account change). The original provider id is preserved as evidence, and this draft will not be posted against the old copy. To publish this content, verify the connected account in Settings, then approve a fresh draft of it.",
           }).eq("id", draft.id);
-          return json({ ok: false, status: "needs_attention", error: "The scheduled copy no longer exists at the connected account. This draft is marked Needs attention; verify the connected account in Settings, then try again." }, 502);
+          return json({ ok: false, status: "needs_attention", error: "The scheduled copy no longer exists at the connected account. This draft is marked Needs attention and will not be posted against the old copy. Verify the connected account in Settings, then approve a fresh draft of this post." }, 502);
         }
         return json({ ok: false, status: "failed", error: `Could not publish the scheduled post now: ${msg}` }, 502);
       }
