@@ -47,6 +47,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 <li>Dark boxes: click Copy, then paste into the website. Type nothing yourself.</li>
 <li>Yellow boxes: click or choose exactly that option on the website.</li>
 <li>When a step says to copy a key, paste it into the box at the bottom of the card.</li>
+<li>Images are always on. They are not a choice.</li>
 <li>Then click <b>Save keys file</b>.</li>
 </ul>
 <div class="warn">
@@ -191,9 +192,6 @@ var F=[
 {t:"LinkedIn company page name",v:"LINKEDIN_COMPANY_PAGE_NAME",
  why:["So Claude picks the page, not your personal profile."],without:["Claude cannot confirm the right page."],
  form:function(){return[{t:"Open your company page on LinkedIn."},{t:"Copy the page name from the top of the page."},{t:"Click the box below this card. Paste it."}]}},
-{t:"Images",v:"IMAGES",yn:1,
- why:["Turns on draft images. The worker makes them on your Claude plan."],without:["Text-only drafts."],
- form:function(){return[{t:"Choose YES or NO below."}]}},
 {t:"GitHub Actions spending cap",v:"GITHUB_BUDGET_CAP_SET",yn:1,
  why:["Stops any surprise charge from the worker."],without:["Unlimited Actions spend is possible."],
  link:["Open GitHub budgets","https://github.com/settings/billing/budgets"],
@@ -263,7 +261,7 @@ function refresh(){
 refresh();
 function build(){
   var L=["INSIGHT FORGE KEYS. Made on "+new Date().toISOString().slice(0,10)+". Keep private. Never commit, sync or email.",""];
-  F.forEach(function(f){var v=els[f.v].inp.value.trim().replace(/[\r\n]+/g," ");L.push(f.v+" = "+v)});
+  F.forEach(function(f){var v=els[f.v].inp.value.trim().replace(/[\r\n]+/g," ");L.push(f.v+" = "+v)});L.push("IMAGES = YES");
   return L.join("\r\n")+"\r\n"}
 document.getElementById("save").onclick=function(){
   var bad=[];F.forEach(function(f){if(!els[f.v].chk(true))bad.push(f.t)});
