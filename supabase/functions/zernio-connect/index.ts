@@ -72,7 +72,14 @@ async function listLinkedInOrganizations(accountId: string): Promise<any[]> {
   let body: any = null;
   try { body = text ? JSON.parse(text) : null; } catch { body = text; }
   if (!res.ok) throw new Error(body?.error || body?.message || text || `HTTP ${res.status}`);
-  return Array.isArray(body?.organizations) ? body.organizations : [];
+  const orgs = Array.isArray(body?.organizations) ? body.organizations : [];
+  if (!orgs.length) {
+    throw new Error(
+      "LinkedIn shows no company pages for this user. The user must be an admin of the company page. Zernio said: " +
+        String(text).slice(0, 300),
+    );
+  }
+  return orgs;
 }
 
 const orgName = (o: any) => o?.localizedName || o?.name || o?.vanityName || String(o?.id ?? "");
