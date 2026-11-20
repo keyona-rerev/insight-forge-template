@@ -1,8 +1,38 @@
 {
  "product": "Insight Forge",
- "current": "2026-09-30",
+ "current": "2026-11-20",
  "how_to_find": "Ask the client for the newest file name in the supabase/migrations folder of their repo. Match its date to the list below. If they have no such folder, choose Not sure and send them the newest version steps.",
  "versions": [
+  {
+   "id": "2026-11-20",
+   "date": "2026-11-20",
+   "title": "Faster install",
+   "summary": "Every sign-in, token and key now happens in one sitting. DNS is gone. Each step shows a time estimate. The first check uses 3 drafts, and the first 12 posts start after the install.",
+   "upgrade_type": "none",
+   "changes": [
+    {
+     "kind": "Removed",
+     "text": "DNS and the alert-route choice. Alerts use Resend's test sender."
+    },
+    {
+     "kind": "Changed",
+     "text": "Token and key steps moved into Part 2, each stored right after it is made"
+    },
+    {
+     "kind": "Changed",
+     "text": "Brand step uses the research values instead of repeating the logo hunt"
+    },
+    {
+     "kind": "Changed",
+     "text": "Launch check starts 3 drafts. A later step starts the first 12 posts"
+    },
+    {
+     "kind": "Added",
+     "text": "Time estimate and direct link on every step"
+    }
+   ],
+   "upgrade_steps": []
+  },
   {
    "id": "2026-09-30",
    "date": "2026-09-30",
@@ -10,8 +40,14 @@
    "summary": "The setup wizard replaces the old Render guide. The app code is the same as the version before it.",
    "upgrade_type": "none",
    "changes": [
-    {"kind": "Added", "text": "Setup wizard with 19 steps"},
-    {"kind": "Changed", "text": "Deploy target is GitHub Pages, not Render"}
+    {
+     "kind": "Added",
+     "text": "Setup wizard with 19 steps"
+    },
+    {
+     "kind": "Changed",
+     "text": "Deploy target is GitHub Pages, not Render"
+    }
    ],
    "upgrade_steps": []
   },
@@ -22,13 +58,30 @@
    "summary": "The three daily and weekly jobs no longer point at the original project. They read the project address and key from your own database.",
    "upgrade_type": "database",
    "changes": [
-    {"kind": "Fixed", "text": "Daily jobs sent calls to the original project"},
-    {"kind": "Added", "text": "fire_automation_endpoint function"},
-    {"kind": "Added", "text": "project_url and project_anon_key settings in automation_config"}
+    {
+     "kind": "Fixed",
+     "text": "Daily jobs sent calls to the original project"
+    },
+    {
+     "kind": "Added",
+     "text": "fire_automation_endpoint function"
+    },
+    {
+     "kind": "Added",
+     "text": "project_url and project_anon_key settings in automation_config"
+    }
    ],
    "upgrade_steps": [
-    {"title": "Get the new database changes", "text": "Run these commands in your repo folder.", "copy": "git pull\nnpx supabase link --project-ref {{supabase_project_ref}}\nnpx supabase db push"},
-    {"title": "Set your project address and key", "text": "Open the SQL Editor in Supabase. Replace PASTE_YOUR_ANON_KEY with your anon public key from Project Settings, API.", "copy": "update public.automation_config set value = '{{supabase_url}}' where key = 'project_url';\nupdate public.automation_config set value = 'PASTE_YOUR_ANON_KEY' where key = 'project_anon_key';"}
+    {
+     "title": "Get the new database changes",
+     "text": "Run these commands in your repo folder.",
+     "copy": "git pull\nnpx supabase link --project-ref {{supabase_project_ref}}\nnpx supabase db push"
+    },
+    {
+     "title": "Set your project address and key",
+     "text": "Open the SQL Editor in Supabase. Replace PASTE_YOUR_ANON_KEY with your anon public key from Project Settings, API.",
+     "copy": "update public.automation_config set value = '{{supabase_url}}' where key = 'project_url';\nupdate public.automation_config set value = 'PASTE_YOUR_ANON_KEY' where key = 'project_anon_key';"
+    }
    ]
   },
   {
@@ -38,11 +91,21 @@
    "summary": "Scheduled content now fires each day without a manual step. WARNING: installs from this version until 2026-09-02 send the daily call to the original project. Upgrade these installs first.",
    "upgrade_type": "database",
    "changes": [
-    {"kind": "Added", "text": "Daily job that fires due schedules"},
-    {"kind": "Added", "text": "automation_config table with a secret for the job"}
+    {
+     "kind": "Added",
+     "text": "Daily job that fires due schedules"
+    },
+    {
+     "kind": "Added",
+     "text": "automation_config table with a secret for the job"
+    }
    ],
    "upgrade_steps": [
-    {"title": "Deploy the function", "text": "Run this command in your repo folder.", "copy": "npx supabase functions deploy fire-due-schedules --project-ref {{supabase_project_ref}}"}
+    {
+     "title": "Deploy the function",
+     "text": "Run this command in your repo folder.",
+     "copy": "npx supabase functions deploy fire-due-schedules --project-ref {{supabase_project_ref}}"
+    }
    ]
   }
  ]

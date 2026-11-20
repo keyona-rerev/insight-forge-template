@@ -14,7 +14,7 @@ type StepState = "idle" | "running" | "done" | "failed";
 // Launch page: load the launch pack the owner approved in Part 1.
 // 1. Validate the pack and write the strategy setup (load-launch-pack).
 // 2. Add each source one at a time (create-manual-source), so progress shows.
-// 3. Open Schedule, which starts the first batch of 12 drafts by itself.
+// 3. Open Schedule, which starts the first batch of 3 drafts by itself.
 const LaunchPackPage = () => {
   const navigate = useNavigate();
   const [text, setText] = useState("");
@@ -131,7 +131,7 @@ const LaunchPackPage = () => {
     await waitForSummaries(cardIds);
     setBusy(false);
     toast.success("Launch pack loaded. Starting your first drafts.");
-    navigate("/schedule?tab=cadence&autorun=12");
+    navigate("/schedule?tab=cadence&autorun=3");
   };
 
   const icon = (s: StepState) =>
@@ -153,7 +153,7 @@ const LaunchPackPage = () => {
       <main className="container mx-auto px-4 py-8 max-w-3xl">
         <h1 className="text-3xl font-bold mb-2">Load your launch pack</h1>
         <p className="text-muted-foreground mb-6">
-          Use the launch pack you approved in Part 1. This page loads it, adds your sources, and starts your first 12 drafts.
+          Use the launch pack you approved in Part 1. This page loads it, adds your sources, and starts your first 3 drafts. The rest of your first 12 come after setup.
         </p>
 
         <ul className="list-disc pl-5 mb-6 text-sm space-y-1">
@@ -223,7 +223,7 @@ const LaunchPackPage = () => {
             </li>
             <li className="flex items-start gap-2">
               {icon(pack && readState === "done" ? "running" : "idle")}
-              <span>First 12 drafts</span>
+              <span>First 3 drafts</span>
             </li>
           </ul>
         )}

@@ -207,7 +207,7 @@ export const CadenceTab = () => {
   } | null>(null);
   const startedHereRef = useRef(false);
 
-  // The Launch page sends the owner here with ?autorun=12. Once the cadence
+  // The Launch page sends the owner here with ?autorun=3. Once the cadence
   // is loaded, start the first batch of drafts by itself, one time.
   const autoRanRef = useRef(false);
   useEffect(() => {

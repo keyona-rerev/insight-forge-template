@@ -243,7 +243,7 @@ The dashboard shows your review pipeline and quick access to everything else.`}
                 <p className="font-medium text-blue-900">Your posting schedule is empty.</p>
                 <ul className="text-sm text-blue-800 mt-1 list-disc pl-5 space-y-0.5">
                   <li>Load the launch pack from Part 1 of setup.</li>
-                  <li>It adds your strategy, sources and schedule, then starts your first 12 drafts.</li>
+                  <li>It adds your strategy, sources and schedule, then starts your first 3 drafts.</li>
                 </ul>
               </div>
               <Button size="sm" onClick={() => navigate("/launch")} className="shrink-0">

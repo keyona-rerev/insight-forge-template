@@ -5,7 +5,7 @@ The launch pack is a file that holds everything a new install needs to start wel
 ## What it does
 - Part 1 builds it. A Claude chat reads the client's website and proposes every default.
 - The client checks a preview and approves it.
-- Part 2 loads it. The app's Launch page (`/launch`) saves the setup, adds the sources, and starts the first 12 drafts.
+- Part 2 loads it. The app's Launch page (`/launch`) saves the setup, adds the sources, and starts the first 3 drafts. The wizard's last step starts the rest of the first 12.
 
 ## Where each piece lives
 - Prompt: wizard step "Research first, then build the launch pack" (copy it from there, or from the section below).
