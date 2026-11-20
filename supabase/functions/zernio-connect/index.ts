@@ -166,6 +166,13 @@ serve(async (req) => {
       if (defaultProfile) {
         const own = accounts.filter((a) => a.profileId === defaultProfile);
         if (own.length) accounts = own;
+        else if (Deno.env.get("ZERNIO_PROFILE_ID")) {
+          // A pinned-profile install never falls back to workspace-wide
+          // accounts: with none connected on its own profile yet, adopting
+          // another install's account (and the retry sweep below publishing
+          // through it) is exactly the failure this pin exists to prevent.
+          return json({ connected: false, error: `No ${platformLabel(PLATFORM)} account on this install's Zernio profile yet. Connect it from Settings.` }, 404);
+        }
       }
       if (!accounts.length) {
         return json({ connected: false, error: `No ${platformLabel(PLATFORM)} account found on the provider yet` }, 404);
@@ -180,7 +187,15 @@ serve(async (req) => {
         // accounts. Use the company page when it exists.
         try {
           const rawRows = await listRawLinkedInAccounts();
-          const org = rawRows.find(isOrgAccount);
+          // Never adopt a company-page account that is not on this install's
+          // own Zernio profile. `accounts` above is already scoped to the
+          // install's profile (default, or ZERNIO_PROFILE_ID when set) -- a
+          // key-wide search here would let this install adopt another
+          // install's account object on a shared workspace, and any later
+          // page switch or publish would mutate THAT install's identity.
+          const ownIds = new Set(accounts.map((a) => String(a.accountId)));
+          const org = rawRows.find((a) =>
+            isOrgAccount(a) && ownIds.has(String(a.accountId ?? a._id ?? a.id)));
           if (org) {
             acct = {
               ...acct,
@@ -279,6 +294,28 @@ serve(async (req) => {
         .eq("platform", PLATFORM)
         .maybeSingle();
       if (!conn?.external_account_id) return json({ error: "Connect LinkedIn first." });
+      // Refuse to retarget an account object that is not on this install's
+      // own Zernio profile: on a shared workspace another install may be
+      // publishing through that same object, and switching its page would
+      // redirect that install's posts. Fail closed if the check cannot run.
+      try {
+        const guardProfile = await publisher.getDefaultProfileId();
+        if (guardProfile) {
+          const guardAccounts = (await publisher.listAccounts(PLATFORM))
+            .filter((a) => a.profileId === guardProfile);
+          if (Deno.env.get("ZERNIO_PROFILE_ID") && !guardAccounts.length) {
+            return json({ error: "No LinkedIn account on this install's Zernio profile yet. Connect it from Settings. No page was changed." });
+          }
+          if (guardAccounts.length &&
+            !guardAccounts.some((a) => String(a.accountId) === String(conn.external_account_id))) {
+            return json({
+              error: "This install's stored LinkedIn connection belongs to a different Zernio profile. Reconnect LinkedIn from Settings so this install uses its own connection. No page was changed.",
+            });
+          }
+        }
+      } catch (e) {
+        return json({ error: "Could not verify which Zernio profile this connection belongs to, so nothing was changed. " + (e instanceof Error ? e.message : "unknown") });
+      }
       const target = accountType === "personal" ? "personal" : "organization";
       try {
         const r = target === "organization"
