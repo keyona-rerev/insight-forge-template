@@ -63,7 +63,17 @@ serve(async (req) => {
     const { data: profile } = await supabase.from("profiles")
       .select("business_name, business_description, target_audience, brand_voice, email, visual_studio_config")
       .eq("user_id", userId).maybeSingle();
-    if (!profile?.email) return json({ error: "The owner's profile has no email address yet" }, 409);
+    if (!profile) return json({ error: "The owner has not signed in to the app yet. Sign in once, then send the welcome again from Settings." }, 409);
+    if (!profile.email) {
+      // Nothing fills profiles.email at sign-up. The install has exactly one
+      // login (TENANT_USER_ID), so its auth email is the owner's email. Save it
+      // on the profile so the send step (getProfileEmail) finds it too.
+      const { data: au } = await supabase.auth.admin.getUserById(userId);
+      const authEmail = au?.user?.email ?? null;
+      if (!authEmail) return json({ error: "The owner's login has no email address" }, 409);
+      await supabase.from("profiles").update({ email: authEmail }).eq("user_id", userId);
+      profile.email = authEmail;
+    }
 
     const [{ data: formats }, { data: schedules }, { data: conns }] = await Promise.all([
       supabase.from("formats").select("platform, is_active").eq("user_id", userId),
