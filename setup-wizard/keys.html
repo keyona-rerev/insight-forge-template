@@ -204,7 +204,10 @@ var F=[
  form:function(){var a=repo("APP_REPO_OWNER_SLASH_NAME").split("/")[1]||"";return[
   {h:"First, find your option. Open the link above. Sign in to Supabase."},
   {h:"OPTION A. You have no Supabase project for this app yet."},
-  {a:"https://supabase.com/dashboard/new",l:"Click this. The page Create a new project opens."},
+  {a:"https://supabase.com/dashboard/projects",l:"Click this. Your Supabase projects list opens. If Supabase asks, sign in."},
+  {t:"Click the green New project button at the top right."},
+  {t:"If the page says Create a new organization instead: you have no organization yet, or Supabase wants a new one. Click the Name box. Type any name. For Type choose Personal. For Plan choose Free. Click Create organization. The Create a new project page then opens."},
+  {t:"If any page shows a price above $0, asks for a card, or says you reached your project limit: stop. Do not pay. Make a new organization with Plan Free, or tell Claude."},
   {l:"Organization. Choose your organization.",p:"your organization"},
   a?{l:"Project name. Paste into the Project name box.",c:a}:need(a,"the app repo name"),
   {l:"Database password. Click this button on the page.",p:"Generate a password"},
