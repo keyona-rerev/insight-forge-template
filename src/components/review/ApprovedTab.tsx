@@ -103,7 +103,23 @@ export const ApprovedTab = () => {
       const { data, error } = await supabase.functions.invoke("post-now", {
         body: { draftId: draft.id },
       });
-      if (error) throw error;
+      if (error) {
+        // FunctionsHttpError.message is only the generic "non-2xx" string;
+        // the function's JSON body carries the real reason (for example a
+        // stale provider reference after an account change). Read it first,
+        // then fall back to the generic message.
+        let detail = "";
+        try {
+          const ctx = (error as { context?: Response }).context;
+          if (ctx) {
+            const body = await ctx.json();
+            detail = body?.error || "";
+          }
+        } catch { /* body unreadable; use generic message */ }
+        toast.error(detail ? `Post Now: ${detail}` : `Post Now failed: ${error.message}`);
+        loadDrafts();
+        return;
+      }
       if (data?.ok || data?.alreadyPosted) {
         toast.success(data.alreadyPosted
           ? `Already posted to ${label}.`
