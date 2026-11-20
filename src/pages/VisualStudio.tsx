@@ -188,6 +188,19 @@ const VisualStudio = () => {
           const stillValid = savedTypes.filter((id: string) => validTypeIds.has(id));
           merged.enabled_visual_types = stillValid.length > 0 ? stillValid : DEFAULT_CONFIG.enabled_visual_types;
           setConfig(merged);
+          // Restore the custom-font controls from the saved config: a saved
+          // font outside the bundled choices means the custom input was used.
+          // Without this the reload hid that state - the select showed an
+          // unmatched value, the input stayed hidden, and picking any listed
+          // font silently dropped the client's custom font.
+          if (merged.display_font && !DISPLAY_FONTS.some(f => f.value === merged.display_font)) {
+            setCustomDisplayFont(merged.display_font);
+            setShowCustomDisplay(true);
+          }
+          if (merged.body_font && !BODY_FONTS.some(f => f.value === merged.body_font)) {
+            setCustomBodyFont(merged.body_font);
+            setShowCustomBody(true);
+          }
         } catch { /* stay on defaults */ }
       }
 

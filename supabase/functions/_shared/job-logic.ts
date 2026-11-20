@@ -187,9 +187,13 @@ export async function completeJob(db: Db, args: {
     const o = args.output as any;
     // C2 size bound: results ride on the job row (jsonb) and are read back by
     // edge functions and clients; cap payload so a runaway worker output can
-    // never write an unbounded value.
-    const MAX_INTERACTIVE_TEXT = 100_000;
-    const MAX_INTERACTIVE_BYTES = 256 * 1024;
+    // never write an unbounded value. 2026-11-19: raised for visual-preview
+    // results - the worker now delivers previews self-contained (bundled fonts
+    // inlined as data URIs by the reviewed render rewrite; ~452KB with the
+    // default 7-font bundle). 1M/1.25M keeps ~2x headroom while staying a
+    // hard bound.
+    const MAX_INTERACTIVE_TEXT = 1_000_000;
+    const MAX_INTERACTIVE_BYTES = 1280 * 1024;
     if (o && typeof o === "object" && !Array.isArray(o) &&
         (typeof o.text !== "string" || o.text.length > MAX_INTERACTIVE_TEXT ||
          JSON.stringify(o).length > MAX_INTERACTIVE_BYTES)) {
