@@ -89,7 +89,7 @@ button{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid var(--in
     var out=document.getElementById('out'),vs=D.versions,idx=-1,i;
     for(i=0;i<vs.length;i++)if(vs[i].id===id)idx=i;
     if(id==='?'||idx<0){
-      out.innerHTML='<div class="how"><b>How to find the version</b><br>'+esc(D.how_to_find)+'</div><div class="verdict go">Not sure? Send the client the newest version steps below.</div><div class="tl">'+vs.map(function(v){return card(v);}).join('')+'</div>';
+      out.innerHTML='<div class="verdict go"><b>Not sure which version?</b><ul><li>Send the client the newest steps below.</li><li>To find it: ask for the newest file name in the <b>supabase/migrations</b> folder. That folder holds the database updates.</li><li>Match its date to the list below.</li></ul></div><div class="tl">'+vs.map(function(v){return card(v);}).join('')+'</div>';
       wire(out);return;
     }
     if(idx===0){out.innerHTML='<div class="verdict ok">This client has the newest version. Nothing to do.</div>';return;}

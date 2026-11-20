@@ -1,6 +1,6 @@
 {
  "title": "Insight Forge Setup",
- "intro": "Choose who does the work. Both routes install the same app, keep your saved values and require real draft and image checks. Nothing is connected just by opening this guide.\n\nPart 1 is the plan. Part 2 is every sign-in, token and key, in one sitting. Part 3 is build and check, and most of it is waiting. Each step shows an estimate. The estimates are not timed on a full run yet.",
+ "intro": "Pick a route. It has 3 parts: plan, keys, then build and check. Opening this page connects nothing.",
  "variables": [
   {
    "key": "business_name",
@@ -345,40 +345,40 @@
    "time": "About 3 min"
   },
   {
-   "title": "Create the app repository",
-   "instructions": "In GitHub, check you are signed into {{github_username}}. Open Create repository below. Owner: {{github_username}}. Repository name: {{repo_name}}. Choose Public, leave README and other starter files unchecked, then press Create repository.\n\nIf that name already exists, do not overwrite it. Set an unused name in Your values and return here.\n\nPublic is for the app code only so GitHub Pages can host it on the free plan. Client content and secrets stay outside this repository.",
+   "title": "Create the app repository", "images": [{"src": "img/newrepo.png", "alt": "The GitHub Create a new repository form. Red boxes mark the template, the Owner box, the Repository name box and the visibility box.", "caption": "The template, Owner, Repository name and visibility boxes. Choose Public for the app."}],
+   "instructions": "1. Open the new-repository form below. Sign in as {{github_username}}. The template is already chosen.\n2. Owner: {{github_username}}.\n3. Repository name: {{repo_name}}.\n4. Choose Public. Leave Include all branches off.\n5. Click Create repository.\n\nIf that name already exists, do not overwrite it. Set an unused name in Your values and return here.\n\nPublic is for the app code only so GitHub Pages can host it on the free plan. Client content and secrets stay outside this repository.",
    "copy": [
     {
      "label": "Repo address",
      "text": "https://github.com/{{github_username}}/{{repo_name}}"
     }
    ],
-   "checkbox_label": "The empty repo exists",
-   "verify_hint": "The address opens and says the repo is empty.",
+   "checkbox_label": "The app repo exists",
+   "verify_hint": "The address opens and shows the app folders.",
    "links": [
     {
-     "label": "Create repository in GitHub",
-     "url": "https://github.com/new"
+     "label": "Open the new-repository form",
+     "url": "https://github.com/new?template_name=insight-forge-template&template_owner=keyona-rerev"
     }
    ],
    "phase": "Part 2 of 3 · Your parts, all in one sitting",
    "time": "About 2 min"
   },
   {
-   "title": "Copy the AI worker to the client's GitHub",
-   "instructions": "The worker writes drafts and images with the client's Claude plan. It runs in the client's own GitHub. You import it now, so the token steps that follow have a place to store their tokens.\n\n1. Open the import page below. Sign in as {{github_username}}.\n2. In 'Your source repository's clone URL', paste the source address below.\n3. Owner: {{github_username}}. Repository name: insightforge-worker.\n4. Choose Private. The worker's run logs belong to the client.\n5. Press Begin import. Wait for 'Import complete'.\n\nCheck that the owner is {{github_username}} before you start. This repository must be Private, unlike the app-code repository.",
+   "title": "Copy the AI worker to the client's GitHub", "images": [{"src": "img/newrepo.png", "alt": "The GitHub Create a new repository form. Red boxes mark the template, the Owner box, the Repository name box and the visibility box.", "caption": "The same form. Type insightforge-worker as the name. Choose Private."}],
+   "instructions": "The worker writes drafts and images with the client's Claude plan. It runs in the client's own GitHub. You copy it now, so the token steps that follow have a place to store their tokens.\n\n1. Open the new-repository form below. Sign in as {{github_username}}. The template is already chosen.\n2. Owner: {{github_username}}.\n3. Repository name: insightforge-worker.\n4. Choose Private. The worker's run logs belong to the client.\n5. Click Create repository.\n\nThis repository must be Private, unlike the app-code repository.",
    "copy": [
     {
-     "label": "Source address",
-     "text": "https://github.com/keyona-rerev/knowledge-loom-worker-template"
+     "label": "Worker repository name",
+     "text": "insightforge-worker"
     }
    ],
-   "checkbox_label": "The import is complete and the repo is Private",
+   "checkbox_label": "The worker repo exists and is Private",
    "verify_hint": "https://github.com/{{worker_repo}} opens and shows the folders .github, render and scripts.",
    "links": [
     {
-     "label": "Open the GitHub import page",
-     "url": "https://github.com/new/import"
+     "label": "Open the new-repository form",
+     "url": "https://github.com/new?template_name=knowledge-loom-worker-template&template_owner=keyona-rerev"
     }
    ],
    "phase": "Part 2 of 3 · Your parts, all in one sitting",
@@ -546,7 +546,7 @@
    "time": "About 6 min, or 12 min if you need new Resend and Zernio accounts"
   },
   {
-   "title": "Add the build settings in GitHub", "images": [{"src": "img/pubkey.png", "alt": "The Supabase API Keys page. A red box marks the copy button next to the publishable key.", "caption": "The copy button for the publishable key. Never copy a secret key."}],
+   "title": "Add the build settings in GitHub", "images": [{"src": "img/pubkey.png", "alt": "The Supabase API Keys page. A red box marks the copy button next to the publishable key.", "caption": "The copy button for the publishable key. Never copy a secret key."},{"src": "img/secrets.png", "alt": "The GitHub Actions secrets page. A red box marks the green New repository secret button.", "caption": "The green New repository secret button."}, {"src": "img/vars.png", "alt": "The GitHub Actions variables page. A red box marks the green New repository variable button.", "caption": "The green New repository variable button."}],
    "instructions": "The website build reads three secrets and one variable from the app repository.\n\n1. Open the app secrets page below. Press New repository secret three times, once per row in the copy boxes.\n2. For the publishable key, open the Supabase API keys page below. Copy the publishable key. Never use a secret or service-role key.\n3. Open the app variables page below. Press New repository variable. Add VITE_VISUALS_ENABLED with the value true. This turns on the image controls.",
    "copy": [
     {
@@ -823,7 +823,7 @@
    "time": "About 2 min of yours, plus 5 min while functions upload"
   },
   {
-   "title": "Turn on GitHub Pages",
+   "title": "Turn on GitHub Pages", "images": [{"src": "img/pages.png", "alt": "The GitHub Pages settings. A red box marks the Source dropdown set to GitHub Actions.", "caption": "The Source dropdown. Choose GitHub Actions."}],
    "instructions": "In the app repository, open Settings, then Pages. Under Build and deployment, set Source to GitHub Actions. You are choosing how GitHub hosts this app, not connecting LinkedIn or sending content.",
    "checkbox_label": "Pages source is GitHub Actions",
    "verify_hint": "The Pages screen says the site is ready to publish.",
@@ -837,7 +837,7 @@
    "time": "About 1 min"
   },
   {
-   "title": "Publish the app",
+   "title": "Publish the app", "images": [{"src": "img/actions.png", "alt": "The GitHub Actions page. A red box marks a finished Deploy to GitHub Pages run with a green check.", "caption": "A finished run with a green check. A red cross means the build failed."}],
    "instructions": "Claude Code can do the code-save and upload work, after you approve the destination. This publishes the app WEBSITE code. It is not permission to publish a LinkedIn post or enable a schedule.\n\nSend the handoff into the same Claude Code session. Stay present for GitHub's own sign-in or permission requests. Claude must stop if the remote repository is not the approved empty one, if a secret is staged, or if the upload would need a force-push.\n\nThis is an assisted handoff, not a new-client execution claim. Open Actions yourself and verify the build result. If it fails, preserve the actual error and fix it before continuing. The manual fallback is below; use one line at a time from the app folder, with the beginner terminal guide if needed.\n\nIf Git says Author identity unknown, stop before the commit. Copy your exact private commit email from GitHub Settings > Emails. Set Git user.name and user.email only inside this new app repository, using that account name and exact email. Do not change global Git settings or guess an email. Then retry the commit once.",
    "copy": [
     {
@@ -1031,7 +1031,7 @@
    "url": "https://support.claude.com/en/articles/12902428-use-claude-in-chrome-safely"
   },
   {
-   "label": "Optional: connect local Code to Chrome",
+   "label": "Connect local Code to Chrome",
    "url": "https://code.claude.com/docs/en/chrome"
   }
  ],
@@ -1128,13 +1128,13 @@
    ],
    "title": "Create the app repository",
    "actor": "Part 2 of 3 · Your parts, all in one sitting",
-   "instructions": "In GitHub, check you are signed into {{github_username}}. Open Create repository below. Owner: {{github_username}}. Repository name: {{repo_name}}. Choose Public, leave README and other starter files unchecked, then press Create repository.\n\nIf that name already exists, do not overwrite it. Set an unused name in Your values and return here.\n\nPublic is for the app code only so GitHub Pages can host it on the free plan. Client content and secrets stay outside this repository.",
+   "instructions": "1. Open the new-repository form below. Sign in as {{github_username}}. The template is already chosen.\n2. Owner: {{github_username}}.\n3. Repository name: {{repo_name}}.\n4. Choose Public. Leave Include all branches off.\n5. Click Create repository.\n\nIf that name already exists, do not overwrite it. Set an unused name in Your values and return here.\n\nPublic is for the app code only so GitHub Pages can host it on the free plan. Client content and secrets stay outside this repository.",
    "verify_hint": "The address opens and says the repo is empty.",
    "checkbox_label": "The empty repo exists",
    "links": [
     {
-     "label": "Create repository in GitHub",
-     "url": "https://github.com/new"
+     "label": "Open the new-repository form",
+     "url": "https://github.com/new?template_name=insight-forge-template&template_owner=keyona-rerev"
     }
    ]
   },
@@ -1144,13 +1144,13 @@
    ],
    "title": "Copy the AI worker to the client's GitHub",
    "actor": "Part 2 of 3 · Your parts, all in one sitting",
-   "instructions": "The worker writes drafts and images with the client's Claude plan. It runs in the client's own GitHub. You import it now, so the token steps that follow have a place to store their tokens.\n\n1. Open the import page below. Sign in as {{github_username}}.\n2. In 'Your source repository's clone URL', paste the source address below.\n3. Owner: {{github_username}}. Repository name: insightforge-worker.\n4. Choose Private. The worker's run logs belong to the client.\n5. Press Begin import. Wait for 'Import complete'.\n\nCheck that the owner is {{github_username}} before you start. This repository must be Private, unlike the app-code repository.",
+   "instructions": "The worker writes drafts and images with the client's Claude plan. It runs in the client's own GitHub. You copy it now, so the token steps that follow have a place to store their tokens.\n\n1. Open the new-repository form below. Sign in as {{github_username}}. The template is already chosen.\n2. Owner: {{github_username}}.\n3. Repository name: insightforge-worker.\n4. Choose Private. The worker's run logs belong to the client.\n5. Click Create repository.\n\nThis repository must be Private, unlike the app-code repository.",
    "verify_hint": "https://github.com/{{worker_repo}} opens and shows the folders .github, render and scripts.",
-   "checkbox_label": "The import is complete and the repo is Private",
+   "checkbox_label": "The worker repo exists and is Private",
    "links": [
     {
-     "label": "Open the GitHub import page",
-     "url": "https://github.com/new/import"
+     "label": "Open the new-repository form",
+     "url": "https://github.com/new?template_name=knowledge-loom-worker-template&template_owner=keyona-rerev"
     }
    ]
   },
