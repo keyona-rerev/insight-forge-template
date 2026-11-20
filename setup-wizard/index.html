@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" sizes="32x32" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAD/ElEQVR4Xu2VTWhcVRiG3/Odc+femUkyt5khndI21ZKftrSQ2EqTmUq1CFIoRRfRlSgUGpAmWSi6EDR1odiVdeFP0EXEKl1UEUFwZYtJRZpIQQUJVFulKPlrYlon4517Pjk3TpjUmLlz02VfuHDP4pz3+X7Od4C7uquIyrVlPupqTe+MuH1ZFP0A7lCEs93bN+yJfgbWAwD00sY9263EmVyr2xEVIlIG8u2ZD/tkdttBaoAETAYaogKoWjfm29Nn+in7aI7qE+/7k5hj71kq8ve1nlNWTRnItaU/OCGyj+WpPpEAYYILmNalb0Z+nb+Rb2081d3idtYKIsJuyLelhwdoU09e1sfdBxYhkhpjo8A7N6ZGrqE4e4ya8hd5YeInb7Fv5Mr0eNhzQ5Ug3555r482Pp6nesc9sAirzYOwGPcrBX0hc+DPeWC3iGOMb3Wz9JvCmhuFAmDGkU6RdEzkZXO/ezPkD1PYDw0uChTHBHpm0/CYX+Q2mr44MXMpDEgogLJU81LkxlzvzIAb48D+EtTY7xBOAR2jcXwyJfLCF5vCmBvV1IRGfteSOWISvLUB3NIIdhTU5hJEXIf1jXYLjPS9qcC8Uvq+LNi1cU7PYpb9N6D9y2FJQt2CXGv66UMydXrgSbsh2bsbSDkgHIWACx9fAJiG/GwC+vCXYX0RT7qB94oeYARAYmgv5NYmkDsHWqgHJZ2Zc69d0Yl3LyVfPbbjeir1cDMosQ8CW6DxNcTlHwPzgUfah87mnjhejWL+1JuicGuODURAwYOg81cRwxycuIZdFIiRghXTtipqVpJA5nv750TPjnvq+q1dmQa2usCchKDvcOK5T5E9+VI13//oj5dfgTJRj4/DSVI8XYr5LmtOSMGmytKXvowpEBhCEERvy83R4au67u/fFhLAL8GBb124dvyZg9uGcOipqpHfriADBmD0KOoE2U2WrRtLmhNCwBICRCRJ+yXyealXBENIAS6vjTqHZz6PEv3y1RYAj13HYiFbnNWEoi1tp+CzLXy2hNSKQVIIlkJD+ARifwmmEqJSc6+fDpbuCwOhShI04b5xeIPA/JG9uFmMFdWGLZCTPpTSkNqU4i9IZYFiEuR5oJIEOascb8zLxpX/a2n5FgwCenAcZpJ4QWMC4iQgdgGi+TCSrNAIH0lyYFsaiqn6ECtnYzWVQf93FJvSGA4D8q2LuChZaS/GScVQWoF8XR0gjKq+BQHIx5j86kFvxsyNuhhkQULadRAL3spBZqJaqwfKZanMTFWAf8UPnUcJCL4VKty2Dtt8ZdX8GN1phXoL1pIZqeuZA3ckA2a2R8mM2bduADNOTRaiAJh9kchXU/l1Sz3fXxWm8jX8B9RzZw8qY9OgAAAAAElFTkSuQmCC">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
+<title>Insight Forge Setup</title>
+<style>
+:root{--bg:#f7f5f0;--ink:#14213d;--accent:#0f766e;--line:#d9d4c7;--card:#fff;--bad:#b91c1c;--soft:#e6f2f0;--muted:#4b5563}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.6 Inter,system-ui,sans-serif}
+main{max-width:760px;margin:0 auto;padding:24px 16px 64px}
+h1{font-family:Newsreader,Georgia,serif;font-size:2rem;margin:.2em 0}
+h2{font-family:Newsreader,Georgia,serif;margin:0 0 10px;font-size:1.45rem}
+h3{margin:14px 0 6px;font-size:1rem}
+a{color:var(--accent)}
+.topnav{display:flex;justify-content:space-between;font-size:.9rem;margin:0 0 6px}
+.sub{color:var(--muted);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin:0 0 16px}
+.card.glow{border-color:#9bbdb6;box-shadow:0 0 0 4px rgba(15,118,110,.12)}
+.center{text-align:center}
+ul,ol{margin:6px 0;padding-left:1.25em}li{margin:4px 0}
+button,a.btn{font:inherit;padding:10px 18px;border-radius:8px;border:1px solid var(--ink);background:var(--card);color:var(--ink);cursor:pointer;text-decoration:none;display:inline-block}
+button.primary,a.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid var(--line);margin-top:16px;padding-top:14px;flex-wrap:wrap}
+.flow{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 10px}.flow .grp{flex:1 1 260px}
+.flow .gl{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-bottom:4px}
+.flow .st{display:flex;gap:6px}.flow .st span{flex:1;text-align:center;font-size:.82rem;border:1px solid var(--line);border-radius:8px;padding:5px 4px;background:var(--card);color:var(--muted)}
+.flow .st span.done{background:var(--soft);border-color:#9bbdb6;color:#075e58}.flow .st span.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.biz{font-size:.9rem;color:var(--muted);margin:0 0 14px}.biz b{color:var(--ink)}
+.what{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;gap:6px;align-items:stretch}
+.what .n{background:var(--soft);border:1px solid #9bbdb6;border-radius:10px;padding:12px 8px;text-align:center;font-size:.92rem;color:#075e58;font-weight:600}
+.what .n .ic{display:block;font-size:1.5rem;line-height:1.2;margin-bottom:4px}
+.what .ar{display:flex;align-items:center;color:var(--muted)}
+@media(max-width:620px){.what{grid-template-columns:1fr}.what .ar{justify-content:center;transform:rotate(90deg)}}
+.field{margin:12px 0}.field label{display:block;font-weight:600;font-size:.92rem}
+.field input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;margin-top:4px}
+.field input.bad{border-color:var(--bad)}.err{color:var(--bad);font-size:.85rem;min-height:1.1em}
+.opts{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}.opts section{flex:1 1 220px;border:1px solid var(--line);border-radius:8px;padding:12px 14px}.opts h3{margin:0 0 4px}
+.groups{border-top:1px solid var(--line);margin-top:8px}.groups div{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 2px}.groups span{color:var(--muted);font-size:.9rem}
+details summary{cursor:pointer;font-weight:600;min-height:40px;padding:8px 0}
+.brief{white-space:pre-wrap;overflow-wrap:anywhere;background:#0f172a;color:#e2e8f0;border-radius:8px;padding:12px;font:.85rem/1.5 ui-monospace,Menlo,monospace;max-height:420px;overflow:auto}
+.status{font-weight:600;color:#075e58;min-height:1.2em}
+.check{display:flex;gap:10px;align-items:flex-start;border-top:1px solid var(--line);padding:10px 0}.check:first-of-type{border-top:0}
+.check b{display:block}.check span{color:var(--muted);font-size:.92rem}
+.note{font-size:.9rem;color:var(--muted)}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #b45309;outline-offset:3px}
+.refimg{margin:8px 0 2px}.refimg summary{cursor:pointer;display:inline-block;font-size:.85rem;font-weight:700;color:#0b5d4a;background:#eef6f2;border:1px solid #9cc9b4;border-radius:8px;padding:4px 10px;box-shadow:0 0 8px rgba(11,93,74,.35);list-style:none}.refimg summary::-webkit-details-marker{display:none}.refimg[open] summary{box-shadow:none}.refimg img{display:block;max-width:100%;margin-top:8px;border:1px solid #cfc8b4;border-radius:8px}.refimg .cap{font-size:.8rem;color:#4b5563;margin:4px 0 0}
+.refimg summary{min-height:44px;display:inline-flex;align-items:center}</style>
+</head>
+<body>
+<main>
+<div class="topnav"><span id="back"></span><a href="history">Version history</a></div>
+<div id="flow"></div>
+<p class="biz" id="biz" hidden></p>
+<div id="view"><h1>Loading…</h1></div>
+<ul class="note"><li>Values you type here stay in this browser only.</li><li>This page never asks for passwords, keys or tokens.</li></ul>
+</main>
+<script>
+(function(){
+  var KEY='wizard:'+location.pathname.replace(/[^\/]*$/,''), data, st={stage:'home',vals:{}}, mem=null;
+  var SECRET=/^(sk-|sk_|pk_live|sk_live|eyJ|ghp_|gho_|github_pat_|xox[abp]-|AKIA|AIza|SG\.|re_)/i;
+  var ORDER=['home','business','keys','code','brief','accept'];
+  function store(){try{return window.localStorage;}catch(e){return null;}}
+  function load(){try{var s=store(),o=JSON.parse((s&&s.getItem(KEY))||'null')||mem;if(o){st.vals=o.vals||{};if(ORDER.indexOf(o.stage)>=0)st.stage=o.stage;}}catch(e){}}
+  function save(){var o={stage:st.stage,vals:st.vals};mem=o;try{var s=store();if(s)s.setItem(KEY,JSON.stringify(o));}catch(e){}}
+  function esc(t){var d=document.createElement('div');d.textContent=t==null?'':String(t);return d.innerHTML;}
+  function def(k){var v=(data.variables||[]).filter(function(x){return x.key===k;})[0];return v||{key:k};}
+  function val(k,depth){
+    var vals=st.vals;
+    if(vals[k]!=null&&vals[k]!=='')return vals[k];
+    var d=def(k);
+    if(d.derive&&!(depth>3)){var miss=false,out=String(d.derive).replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g,function(m,x){var v=val(x,(depth||0)+1);if(!v)miss=true;return v;});return miss?'':out;}
+    return d.default||'';
+  }
+  function name(){return st.vals.business_name||'';}
+  function site(){return st.vals.business_website||'';}
+  function wholeBrief(){
+    var pv={};(data.variables||[]).forEach(function(v){var x=val(v.key);if(x)pv[v.key]=x;});
+    var keys='KEYS FILE (read this before the OWNER BATCH). The owner already collected every key, token, password and account value on the Insight Forge keys page and saved them in one plain-text file: %USERPROFILE%\\insight-forge-keys\\KEYS-TO-FILL.txt (on a Mac: ~/insight-forge-keys/KEYS-TO-FILL.txt). Read that file first. Use its values wherever a checkpoint needs them. Never ask the owner for any value that is in the file. The OWNER BATCH shrinks to only what the file cannot hold: sign-ins and approvals on screens you open. Never copy key values into chat, INSTALLATION-STATUS.md, commits or logs.';
+    return data.continuous_brief+'\n\n'+keys+'\n\nCURRENT NON-SECRET VALUES (leads/defaults until verified, not blanket authority):\n'+JSON.stringify(pv,null,2)+'\n\n'+data.continuous_playbook;
+  }
+  function flow(){
+    var i=ORDER.indexOf(st.stage);
+    if(i<1){document.getElementById('flow').innerHTML='';return;}
+    function s(n,label,idx){var c=idx<i?'done':idx===i?'on':'';return '<span class="'+c+'">'+(idx<i?'&#10003; ':n+' &middot; ')+label+'</span>';}
+    document.getElementById('flow').innerHTML='<div class="flow"><div class="grp"><div class="gl">In your browser</div><div class="st">'+s(1,'Business',1)+s(2,'Keys',2)+'</div></div><div class="grp"><div class="gl">In Claude desktop</div><div class="st">'+s(3,'Claude Code',3)+s(4,'Brief',4)+s(5,'Accept',5)+'</div></div></div>';
+  }
+  function bizLine(){
+    var b=document.getElementById('biz');
+    if(name()&&ORDER.indexOf(st.stage)>1){b.innerHTML='Setting up Insight Forge for <b>'+esc(name())+'</b> &middot; '+esc(site());b.hidden=false;}else b.hidden=true;
+  }
+  function backLink(){
+    var i=ORDER.indexOf(st.stage),el=document.getElementById('back');
+    el.innerHTML=i>0?'<a href="#" id="backA">&larr; Back</a>':'';
+    var a=document.getElementById('backA');if(a)a.onclick=function(e){e.preventDefault();go(ORDER[i-1]);};
+  }
+  function keysUrl(){return 'keys.html?name='+encodeURIComponent(name())+'&site='+encodeURIComponent(site());}
+  var V={
+    home:function(){return '<h1>'+esc(data.title.replace(/ Setup$/,''))+'</h1><p class="sub">Your content, turned into posts you approve.</p>'+
+      '<div class="card"><div class="what"><div class="n"><span class="ic" aria-hidden="true">&#127760;</span>Your website and newsletters</div><div class="ar" aria-hidden="true">&rarr;</div><div class="n"><span class="ic" aria-hidden="true">&#9998;</span>Claude drafts posts and images</div><div class="ar" aria-hidden="true">&rarr;</div><div class="n"><span class="ic" aria-hidden="true">&#10003;</span>You approve</div><div class="ar" aria-hidden="true">&rarr;</div><div class="n"><span class="ic" aria-hidden="true">in</span>Posts on LinkedIn</div></div></div>'+
+      '<div class="card glow center"><h2>Are you ready for your setup?</h2><button class="primary" id="go">Yes, start setup</button></div>';},
+    business:function(){return '<div class="card glow"><h2>Which business is this for?</h2>'+
+      '<div class="field"><label for="fs">Business website</label><input id="fs" autocomplete="off" spellcheck="false" placeholder="acme.com" value="'+esc(site())+'"><div class="err" id="es"></div></div>'+
+      '<div class="field"><label for="fn">Business name</label><input id="fn" autocomplete="off" placeholder="Acme Co" value="'+esc(name())+'"><div class="err" id="en"></div></div>'+
+      '<div class="foot"><span></span><button class="primary" id="go">Continue to keys &rarr;</button></div></div>';},
+    keys:function(){return '<div class="card glow"><h2>Keys for '+esc(name())+'</h2><ul><li>Do this once, before the install.</li><li>Once you have every key, the rest goes fast.</li><li>The keys page opens in this tab. It has no network access.</li></ul>'+
+      '<div class="groups"><div>Claude<span>2 cards</span></div><div>GitHub<span>4 cards</span></div><div>Supabase<span>7 cards</span></div><div>LinkedIn publishing<span>3 cards</span></div><div>Newsletters and content<span>3 cards</span></div><div>Alerts<span>1 card</span></div><div>Spending cap<span>1 card</span></div></div>'+
+      '<div class="foot"><button id="have">My keys file is already saved</button><a class="btn primary" href="'+esc(keysUrl())+'">Start keys &rarr;</a></div></div>';},
+    code:function(){return '<div class="card glow"><h2>Open Claude Code</h2><ol><li>Open the Claude desktop app.</li><li>Click <strong>Code</strong>. Click <strong>Local</strong>. Choose a new empty folder.</li><li>Sign in with the approved account.</li></ol>'+
+      '<h3>Pick your browser</h3><div class="opts"><section><h3>Option A. Built-in Browser</h3><ul><li>Use the Browser pane in Claude Code.</li><li>Sign in to your accounts in that pane.</li></ul></section><section><h3>Option B. Claude in Chrome</h3><ul><li>Use this if your accounts are signed in to Chrome.</li><li>Connect Claude in Chrome to Claude Code.</li></ul></section></div>'+
+      '<h3>Pick your permission mode</h3><ul><li>Choose <strong>Auto</strong> if you see it.</li><li>Do not choose Bypass permissions.</li><li>Do not choose Skip all approvals.</li></ul>'+
+      '<p><a href="https://code.claude.com/docs/en/desktop" target="_blank" rel="noopener noreferrer">Claude Code desktop guide</a> &middot; <a href="https://code.claude.com/docs/en/chrome" target="_blank" rel="noopener noreferrer">Connect Code to Chrome</a></p>'+
+      '<details><summary>Browser help links</summary><ul>'+(data.browser_sources||[]).map(function(l){return '<li><a target="_blank" rel="noopener noreferrer" href="'+esc(l.url)+'">'+esc(l.label)+'</a></li>';}).join('')+'</ul></details>'+
+      '<div class="foot"><span></span><button class="primary" id="go">Claude Code is open &rarr;</button></div></div>';},
+    brief:function(){return '<div class="card glow"><h2>Give Claude the brief for '+esc(name())+'</h2><ol><li>Click <strong>Copy full installation brief</strong>.</li><li>Paste it into your Local Claude Code chat.</li></ol>'+
+      '<p><button class="primary" id="copy">Copy full installation brief</button></p><p class="status" id="cs" role="status"></p>'+
+      '<ul><li>The brief already has '+esc(name())+' and '+esc(site())+'.</li><li>Claude reads the website and your keys file, then builds everything.</li></ul>'+
+      '<details><summary>Review the complete brief</summary><div class="brief" id="bb"></div></details>'+
+      '<div class="foot"><span></span><button class="primary" id="go">I pasted it &rarr;</button></div></div>';},
+    accept:function(){var it=[['Seen working','Login, draft, image and health check pass.'],['Nothing publishes','Schedules stay off.'],['Evidence','Claude gives you URLs and test results.'],['You accept','You accept the brand look.'],['Second live check','After setup, the install chat runs the install report card against your live app: every function and journey is checked again with real runs.'],['Truthful statuses','Each check is marked passed, failed, blocked or untested, with URLs and run results as evidence.'],['No false finish','Setup complete is not install finished. If any required check fails, is blocked or untested, the install stays open.'],['Report card kept','The filled card is saved with the install (template copy: setup-wizard/REPORT_CARD.md).']];
+      return '<div class="card glow"><h2>Finished means</h2>'+it.map(function(x,k){return '<label class="check"><input type="checkbox" data-ck="'+k+'"'+(st.vals['accept_'+k]==='1'?' checked':'')+'><div><b>'+x[0]+'</b><span>'+x[1]+'</span></div></label>';}).join('')+
+      '<h3>Install report card</h3><p>The install chat fills the <a href="REPORT_CARD.md">install report card</a> against your live app as a second verification round. You see every check, its status and its evidence before the install is called finished.</p>'+
+      '<details><summary>The checks the report card covers</summary><ul>'+
+      '<li><b>Strategy save</b> - edit a strategy card, save, reload: edits persist.</li>'+
+      '<li><b>Reference-card processing</b> - add a manual source: cards move processing to scored without a manual kick.</li>'+
+      '<li><b>Draft visual render</b> - approve a draft: its branded image renders.</li>'+
+      '<li><b>Preview visual</b> - open Preview on a draft: the preview renders.</li>'+
+      '<li><b>Approve to scheduled</b> - approve a draft: it lands scheduled in Review &gt; Approved.</li>'+
+      '<li><b>Post Now</b> - owner clicks Post Now: the post goes live on the connected page.</li>'+
+      '<li><b>Daily publish sweep</b> - at the next sweep, approved unscheduled drafts get scheduled.</li>'+
+      '<li><b>Sources and titles</b> - add a source URL: the title decodes, no raw HTML codes.</li>'+
+      '<li><b>Account pinning guard</b> - publish or retry: a mismatched or unverifiable connected account is rejected.</li>'+
+      '<li><b>Journeys</b> - queue fill (source to scheduled), failure recovery (stuck job re-dispatched and completed), duplicate safety (a retry never double-posts).</li>'+
+      '</ul><p>Statuses: passed = tested live with evidence on this install; failed, blocked or untested keeps the install open. Each status carries its URL or run result.</p></details>'+
+      '<h3>After the install, in the app</h3><ul><li>You load the launch pack in the app.</li><li>You connect LinkedIn.</li><li>You approve the image on one test draft.</li><li>You accept the brand look.</li></ul>'+'<details class="refimg"><summary>Show me a picture of LinkedIn in Settings</summary><img src="img/lisettings.png" alt="The app Settings page, Publishing LinkedIn card. A red box marks the connected business page name. A second red box marks the Post to company page button."><p class="cap">Settings, then Publishing LinkedIn. Check the business page name and Post to company page.</p></details>'+''+
+      '<div class="foot"><button id="reset">Start over</button><span></span></div></div>';}
+  };
+  function go(s){st.stage=s;save();render();window.scrollTo({top:0});}
+  function render(){
+    if(st.stage!=='home'&&st.stage!=='business'&&!name())st.stage='business';
+    flow();bizLine();backLink();
+    document.getElementById('view').innerHTML=V[st.stage]();
+    var g=document.getElementById('go');
+    if(st.stage==='home')g.onclick=function(){go('business');};
+    if(st.stage==='business'){
+      var fs=document.getElementById('fs'),fn=document.getElementById('fn');
+      fs.oninput=function(){document.getElementById('es').textContent='';fs.className='';};
+      fn.oninput=function(){document.getElementById('en').textContent='';fn.className='';};
+      g.onclick=function(){
+        var s=fs.value.trim(),n=fn.value.trim(),okS=/^(https?:\/\/)?(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)+(\/\S*)?$/i.test(s)&&!/\s/.test(s);
+        var es=!s?'Enter the website first.':!okS?'Enter a website address, like acme.com.':SECRET.test(s)?'This looks like a secret key. Do not paste it here.':'';
+        var en=!n?'Enter the business name.':(SECRET.test(n)||n.length>120)?'This does not look like a business name.':'';
+        document.getElementById('es').textContent=es;fs.className=es?'bad':'';
+        document.getElementById('en').textContent=en;fn.className=en?'bad':'';
+        if(es||en)return;
+        st.vals.business_website=s.replace(/^https?:\/\//i,'').replace(/\/+$/,'');st.vals.business_name=n;go('keys');
+      };
+    }
+    if(st.stage==='keys')document.getElementById('have').onclick=function(){go('code');};
+    if(st.stage==='code')g.onclick=function(){go('brief');};
+    if(st.stage==='brief'){
+      document.getElementById('bb').textContent=wholeBrief();
+      document.getElementById('copy').onclick=async function(){var cs=document.getElementById('cs');try{await navigator.clipboard.writeText(wholeBrief());cs.textContent='Copied. Paste it into your one Local Claude Code chat.';}catch(e){cs.textContent='Clipboard access was blocked. Open Review the complete brief and copy its text.';}};
+      g.onclick=function(){go('accept');};
+    }
+    if(st.stage==='accept'){
+      Array.prototype.forEach.call(document.querySelectorAll('[data-ck]'),function(c){c.onchange=function(){st.vals['accept_'+c.getAttribute('data-ck')]=c.checked?'1':'';save();};});
+      document.getElementById('reset').onclick=function(){if(confirm('Clear the business and your progress on this page?')){st={stage:'home',vals:{}};save();render();}};
+    }
+  }
+  fetch('steps.json').then(function(r){return r.json();}).then(function(j){
+    data=j;document.title=j.title;load();
+    try{var q=new URLSearchParams(location.search).get('stage');if(q&&ORDER.indexOf(q)>=0){st.stage=q;save();history.replaceState(null,'',location.pathname);}}catch(e){}
+    render();
+  }).catch(function(){document.getElementById('view').innerHTML='<h1>Could not load steps.json</h1>';});
+})();
+</script>
+</body>
+</html>
