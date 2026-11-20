@@ -234,7 +234,36 @@ serve(async (req) => {
         .select()
         .single();
       if (error) return json({ error: error.message }, 500);
-      return json({ connected: true, connection: data, warning, accountsDebug });
+      // Approved drafts that failed to schedule while this platform was not
+      // connected (or the key was bad) are never retried by anything else.
+      // Retry them now that a working connection exists.
+      let retried = 0;
+      let retryScheduled = 0;
+      try {
+        const { data: stuck } = await supabase
+          .from("drafts")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("approval_status", "approved")
+          .eq("platform", PLATFORM)
+          .is("external_post_id", null)
+          .or("publish_status.is.null,publish_status.eq.needs_attention,publish_status.eq.failed")
+          .limit(50);
+        for (const d of stuck ?? []) {
+          retried++;
+          const r = await fetch(`${supabaseUrl}/functions/v1/publish-to-zernio`, {
+            method: "POST",
+            headers: { Authorization: authHeader, "Content-Type": "application/json" },
+            body: JSON.stringify({ draftId: d.id }),
+          });
+          const body = await r.json().catch(() => ({}));
+          if (body?.status === "scheduled") retryScheduled++;
+          else console.error("zernio-connect retry not scheduled", d.id, JSON.stringify(body).slice(0, 300));
+        }
+      } catch (e) {
+        console.error("zernio-connect retry sweep failed", e instanceof Error ? e.message : e);
+      }
+      return json({ connected: true, connection: data, warning, accountsDebug, retried, retryScheduled });
     }
 
     // switch_type -> change a connected LinkedIn account between company page
