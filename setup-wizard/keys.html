@@ -52,6 +52,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 button.nextok{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 12px rgba(15,118,110,.45)}
 button:disabled{opacity:.4;cursor:default}
 @media (prefers-reduced-motion:reduce){.card.slide{animation:none}}
+.dlg{position:fixed;inset:0;background:rgba(20,33,61,.55);z-index:20;overflow:auto;padding:24px 12px}.dlgbox{max-width:760px;margin:0 auto;background:var(--card);border-radius:12px;padding:20px 22px;box-shadow:0 10px 40px rgba(0,0,0,.3)}.dlgbox code{background:#eef2ff;padding:1px 5px;border-radius:4px}
 </style>
 </head>
 <body>
@@ -78,6 +79,22 @@ button:disabled{opacity:.4;cursor:default}
 <div class="nav"><button id="back" type="button">&larr; Back</button><span class="ctr" id="ctr"></span><button id="next" type="button">Next &rarr;</button></div>
 <div id="root"></div>
 <div class="nav"><button id="back2" type="button">&larr; Back</button><span class="ctr"></span><button id="next2" type="button">Next &rarr;</button></div>
+<div id="savedlg" class="dlg" hidden><div class="dlgbox">
+<h2 style="margin-top:0">Save your keys file in the right folder</h2>
+<ul>
+<li>The file holds every key. It must go in your private keys folder. Not Downloads. Not OneDrive, Dropbox or Google Drive.</li>
+</ul>
+<div class="lbl">Your private keys folder. Click Copy.</div>
+<div class="val"><input type="text" id="folderpath" spellcheck="false" autocomplete="off"><button type="button" id="copyfolder">Copy</button></div>
+<ol class="form">
+<li>Only if this folder does not exist yet: open File Explorer. Click the address bar. Paste <code>%USERPROFILE%</code> and press Enter. Right-click empty space. Click New, then Folder. Name it <code>insight-forge-keys</code>. (On a Mac: use Finder, and make a folder named insight-forge-keys in your home folder.)</li>
+<li>Click the green button below. A Save window opens.</li>
+<li>At the top of the Save window, click the folder address bar. Paste the folder from the box above. Press Enter. The window now shows that folder. (On a Mac: press Command, Shift, G in the Save window. Paste the folder. Press Enter.)</li>
+<li>The file name must say <code>KEYS-TO-FILL.txt</code>. Click Save. If it asks to replace the old file, click Replace.</li>
+<li>This page then says Saved. Tell Claude: filled.</li>
+</ol>
+<div class="row"><button class="primary" id="dosave" type="button">Open the Save window</button><button id="cancelsave" type="button">Cancel</button></div>
+</div></div>
 <div class="bar"><div class="prog"><div class="ptxt" id="ptxt"></div><div class="track"><div id="pfill"></div></div></div><button class="primary" id="save">Save keys file</button><span class="msg" id="status"></span></div>
 </main>
 <script>
@@ -378,15 +395,24 @@ function build(){
   var L=["INSIGHT FORGE KEYS. Made on "+new Date().toISOString().slice(0,10)+". Keep private. Never commit, sync or email.",""];
   F.forEach(function(f){var v=els[f.v].inp.value.trim().replace(/[\r\n]+/g," ");L.push(f.v+" = "+v)});L.push("IMAGES = YES");
   return L.join("\r\n")+"\r\n"}
+var defFolder=(function(){try{var q=new URLSearchParams(location.search).get("folder");if(q&&q.length<260)return q}catch(e){}return "%USERPROFILE%\\insight-forge-keys"})();
+var fp=document.getElementById("folderpath");fp.value=defFolder;
+document.getElementById("copyfolder").onclick=function(){copy(fp.value,this)};
+document.getElementById("cancelsave").onclick=function(){document.getElementById("savedlg").hidden=true};
+function doSave(){
+  var s=document.getElementById("status"),text=build(),name="KEYS-TO-FILL.txt";
+  document.getElementById("savedlg").hidden=true;
+  function fallback(){var u=URL.createObjectURL(new Blob([text],{type:"text/plain"})),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},4000);s.className="msg bad";s.textContent="This browser saved the file to Downloads. Move it into "+fp.value+" now. Then delete it from Downloads."}
+  if(window.showSaveFilePicker){
+    window.showSaveFilePicker({id:"insight-forge-keys",startIn:"documents",suggestedName:name,types:[{description:"Text",accept:{"text/plain":[".txt"]}}]}).then(function(h){return h.createWritable()}).then(function(w){return w.write(text).then(function(){return w.close()})}).then(function(){s.className="msg ok";s.textContent="Saved to the folder you chose. Tell Claude: filled."}).catch(function(e){if(e&&e.name==="AbortError"){s.className="msg";s.textContent="Cancelled. Nothing saved."}else fallback()});
+  }else fallback();
+}
+document.getElementById("dosave").onclick=doSave;
 document.getElementById("save").onclick=function(){
   var bad=[];F.forEach(function(f){if(!els[f.v].chk(true))bad.push(f.t)});
   var s=document.getElementById("status");
-  if(bad.length){s.className="msg bad";s.textContent="Fix "+bad.length+" item(s) first: "+bad.slice(0,3).join("; ")+(bad.length>3?"…":"");var b=document.querySelector("input.bad,select.bad,.msg.bad");var fi=-1;F.forEach(function(f,i){if(fi<0&&!cardOk(i))fi=i});if(fi>=0)go(fi);return}
-  var text=build(),name="KEYS-TO-FILL.txt";
-  function fallback(){var u=URL.createObjectURL(new Blob([text],{type:"text/plain"})),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},4000);s.className="msg ok";s.textContent="Downloaded. Move it into your private keys folder, then delete it from Downloads."}
-  if(window.showSaveFilePicker){
-    window.showSaveFilePicker({suggestedName:name,types:[{description:"Text",accept:{"text/plain":[".txt"]}}]}).then(function(h){return h.createWritable()}).then(function(w){return w.write(text).then(function(){return w.close()})}).then(function(){s.className="msg ok";s.textContent="Saved. Tell Claude: filled."}).catch(function(e){if(e&&e.name==="AbortError"){s.className="msg";s.textContent="Cancelled."}else fallback()});
-  }else fallback();
+  if(bad.length){s.className="msg bad";s.textContent="Fix "+bad.length+" item(s) first: "+bad.slice(0,3).join("; ")+(bad.length>3?"\u2026":"");var fi=-1;F.forEach(function(f,i){if(fi<0&&!cardOk(i))fi=i});if(fi>=0)go(fi);return}
+  s.className="msg";s.textContent="";document.getElementById("savedlg").hidden=false;window.scrollTo({top:0});
 };
 })();
 </script>
