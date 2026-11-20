@@ -505,8 +505,16 @@ const Strategy = () => {
     }]);
   };
 
-  const handleSave = async () => {
-    if (!userId) { toast.error("You must be logged in"); return; }
+  // Each card's Save writes the whole strategy, then closes that card only
+  // if the write succeeded. Before this, card Save only closed edit mode and
+  // nothing reached the database unless "Save strategy" was also pressed.
+  const saveAndClose = async (setEditing: (v: boolean) => void) => {
+    const ok = await handleSave();
+    if (ok) setEditing(false);
+  };
+
+  const handleSave = async (): Promise<boolean> => {
+    if (!userId) { toast.error("You must be logged in"); return false; }
     setLoading(true);
     try {
       // Brand and the generation faders to profiles
@@ -520,8 +528,9 @@ const Strategy = () => {
         user_id: userId,
       };
       if (profileId) {
-        const { error } = await supabase.from("profiles").update(brandPayload).eq("id", profileId);
+        const { data: updated, error } = await supabase.from("profiles").update(brandPayload).eq("id", profileId).select("id");
         if (error) throw error;
+        if (!updated || updated.length === 0) throw new Error("Brand was not saved (no profile row was updated). Reload the page and try again.");
       } else {
         const { data, error } = await supabase.from("profiles").insert([brandPayload]).select("id").single();
         if (error) throw error;
@@ -720,9 +729,11 @@ const Strategy = () => {
         avatar_initials: r.avatar_initials || "",
         questions: qByReader.get(r.id) || [], sort_order: r.sort_order,
       })));
+      return true;
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       toast.error("Failed to save: " + msg);
+      return false;
     } finally {
       setLoading(false);
     }
@@ -785,8 +796,8 @@ const Strategy = () => {
                 <CardDescription>Who {businessLabel} is and how it sounds. The first context the generator reads. The app also themes from these colors.</CardDescription>
               </div>
               {brandEditing ? (
-                <Button size="sm" onClick={() => setBrandEditing(false)} className="shrink-0">
-                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />Save
+                <Button size="sm" onClick={() => saveAndClose(setBrandEditing)} disabled={loading} className="shrink-0">
+                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />{loading ? "Saving..." : "Save"}
                 </Button>
               ) : (
                 <Button variant="outline" size="sm" onClick={() => setBrandEditing(true)} className="shrink-0">
@@ -838,8 +849,8 @@ const Strategy = () => {
                   </p>
                 </div>
                 {hardRulesEditing ? (
-                  <Button size="sm" onClick={() => setHardRulesEditing(false)} className="shrink-0">
-                    <SaveIcon className="h-3.5 w-3.5 mr-1.5" />Save
+                  <Button size="sm" onClick={() => saveAndClose(setHardRulesEditing)} disabled={loading} className="shrink-0">
+                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />{loading ? "Saving..." : "Save"}
                   </Button>
                 ) : (
                   <Button variant="outline" size="sm" onClick={() => setHardRulesEditing(true)} className="shrink-0">
@@ -885,8 +896,8 @@ const Strategy = () => {
                   </p>
                 </div>
                 {voiceProfileEditing ? (
-                  <Button size="sm" onClick={() => setVoiceProfileEditing(false)} className="shrink-0">
-                    <SaveIcon className="h-3.5 w-3.5 mr-1.5" />Save
+                  <Button size="sm" onClick={() => saveAndClose(setVoiceProfileEditing)} disabled={loading} className="shrink-0">
+                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />{loading ? "Saving..." : "Save"}
                   </Button>
                 ) : (
                   <Button variant="outline" size="sm" onClick={() => setVoiceProfileEditing(true)} className="shrink-0">
@@ -1000,8 +1011,8 @@ const Strategy = () => {
                 <CardDescription>The thesis and the fit. The first audience context the generator reads.</CardDescription>
               </div>
               {audienceProfileEditing ? (
-                <Button size="sm" onClick={() => setAudienceProfileEditing(false)} className="shrink-0">
-                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />Save
+                <Button size="sm" onClick={() => saveAndClose(setAudienceProfileEditing)} disabled={loading} className="shrink-0">
+                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />{loading ? "Saving..." : "Save"}
                 </Button>
               ) : (
                 <Button variant="outline" size="sm" onClick={() => setAudienceProfileEditing(true)} className="shrink-0">
@@ -1119,8 +1130,8 @@ const Strategy = () => {
                 <CardDescription>The terrain. Threats can be standing (always live) or triggered (held until a moment fires). Threat items can be attached to a reader below.</CardDescription>
               </div>
               {swotEditing ? (
-                <Button size="sm" onClick={() => setSwotEditing(false)} className="shrink-0">
-                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />Save
+                <Button size="sm" onClick={() => saveAndClose(setSwotEditing)} disabled={loading} className="shrink-0">
+                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />{loading ? "Saving..." : "Save"}
                 </Button>
               ) : (
                 <Button variant="outline" size="sm" onClick={() => setSwotEditing(true)} className="shrink-0">
@@ -1219,8 +1230,8 @@ const Strategy = () => {
                 <CardDescription>The segments {businessLabel} serves. Mark the wedge: the lane content leads with. Lanes are also a slot dial on the schedule.</CardDescription>
               </div>
               {lanesEditing ? (
-                <Button size="sm" onClick={() => setLanesEditing(false)} className="shrink-0">
-                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />Save
+                <Button size="sm" onClick={() => saveAndClose(setLanesEditing)} disabled={loading} className="shrink-0">
+                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />{loading ? "Saving..." : "Save"}
                 </Button>
               ) : (
                 <Button variant="outline" size="sm" onClick={() => setLanesEditing(true)} className="shrink-0">
@@ -1274,8 +1285,8 @@ const Strategy = () => {
                 <CardDescription>The people in the room. Each carries the questions a post has to answer. Readers are an optional slot dial on the schedule; leave a slot unset to rotate.</CardDescription>
               </div>
               {readersEditing ? (
-                <Button size="sm" onClick={() => setReadersEditing(false)} className="shrink-0">
-                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />Save
+                <Button size="sm" onClick={() => saveAndClose(setReadersEditing)} disabled={loading} className="shrink-0">
+                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />{loading ? "Saving..." : "Save"}
                 </Button>
               ) : (
                 <Button variant="outline" size="sm" onClick={() => setReadersEditing(true)} className="shrink-0">
@@ -1356,8 +1367,8 @@ const Strategy = () => {
                 <CardDescription>The platform-native artifact and how it is written. The schedule turns these on; the definitions live here.</CardDescription>
               </div>
               {formatsEditing ? (
-                <Button size="sm" onClick={() => setFormatsEditing(false)} className="shrink-0">
-                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />Save
+                <Button size="sm" onClick={() => saveAndClose(setFormatsEditing)} disabled={loading} className="shrink-0">
+                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />{loading ? "Saving..." : "Save"}
                 </Button>
               ) : (
                 <Button variant="outline" size="sm" onClick={() => setFormatsEditing(true)} className="shrink-0">
@@ -1422,8 +1433,8 @@ const Strategy = () => {
                 <CardDescription>The rhetorical angle: how a post argues and what evidence it leans on. Fit is how well it lands with your readers.</CardDescription>
               </div>
               {naturesEditing ? (
-                <Button size="sm" onClick={() => setNaturesEditing(false)} className="shrink-0">
-                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />Save
+                <Button size="sm" onClick={() => saveAndClose(setNaturesEditing)} disabled={loading} className="shrink-0">
+                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />{loading ? "Saving..." : "Save"}
                 </Button>
               ) : (
                 <Button variant="outline" size="sm" onClick={() => setNaturesEditing(true)} className="shrink-0">
@@ -1487,8 +1498,8 @@ const Strategy = () => {
                 <CardDescription>The funnel role a post performs. Engine jobs are picked by scheduled slots. Reference motions are run by hand and shown here for context.</CardDescription>
               </div>
               {jobsEditing ? (
-                <Button size="sm" onClick={() => setJobsEditing(false)} className="shrink-0">
-                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />Save
+                <Button size="sm" onClick={() => saveAndClose(setJobsEditing)} disabled={loading} className="shrink-0">
+                  <SaveIcon className="h-3.5 w-3.5 mr-1.5" />{loading ? "Saving..." : "Save"}
                 </Button>
               ) : (
                 <Button variant="outline" size="sm" onClick={() => setJobsEditing(true)} className="shrink-0">
@@ -1543,7 +1554,7 @@ const Strategy = () => {
           </CardContent>
         </Card>
 
-        <Button onClick={handleSave} disabled={loading} size="lg">
+        <Button onClick={() => handleSave()} disabled={loading} size="lg">
           {loading ? "Saving..." : "Save strategy"}
         </Button>
       </main>

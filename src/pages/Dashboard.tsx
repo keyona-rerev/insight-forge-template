@@ -197,7 +197,7 @@ const Dashboard = () => {
   ];
 
   const moreLinks = [
-    { title: "All drafts", path: "/drafts", icon: FileEdit },
+    { title: "Review drafts", path: "/review", icon: FileEdit },
     { title: "Reference cards", path: "/cards", icon: Database },
     { title: "Create content", path: "/create", icon: Plus },
     { title: "Question settings", path: "/questions", icon: MessageCircleQuestion },

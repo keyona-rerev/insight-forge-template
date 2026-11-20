@@ -3,7 +3,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { tick as relevanceTick, makeSupabaseStore } from "../_shared/relevance-queue.ts";
 import { tick as summaryTick, makeSupabaseStore as makeSummaryStore } from "../_shared/summary-queue.ts";
 
-// The auto-fire cron entrypoint. pg_cron calls this once a day with a shared secret.
+// The auto-fire cron entrypoint. pg_cron calls this once a day with a shared secret, and every
+// 10 minutes with {"ticks_only": true} for the card and job queues (no slots fire on that call).
 // It finds every active slot that is due today and hands each to execute-autopilot-template
 // as a trusted internal call (service-role bearer plus the slot's user id). It does not
 // generate anything itself; all generation lives in one place.
@@ -86,6 +87,14 @@ serve(async (req) => {
         new Promise((r) => setTimeout(r, 10000)),
       ]);
     }
+
+    // Queue-only pass (cron "card-queue-tick", every 10 minutes): settle and enqueue card summaries and
+    // relevance scores, re-dispatch queued jobs, and stop. It never fires schedule slots. Without this pass
+    // the ticks above ran only once a day with the slot cron, so new reference cards sat at "processing"
+    // and failed visual jobs stayed "generating" for up to 24 hours.
+    let body: Record<string, unknown> = {};
+    try { body = await req.json(); } catch { body = {}; }
+    if (body?.ticks_only === true) return json({ success: true, ticksOnly: true, relevance, summaries });
 
     const now = new Date();
     const dow = now.getUTCDay();

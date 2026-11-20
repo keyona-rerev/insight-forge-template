@@ -1,6 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Decode the HTML entities scraped page titles and text carry (&nbsp; &amp; &#39; &#x2014; ...).
+function decodeEntities(input: string): string {
+  const named: Record<string, string> = { nbsp: " ", amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", ndash: "\u2013", mdash: "\u2014", hellip: "\u2026", rsquo: "\u2019", lsquo: "\u2018", rdquo: "\u201d", ldquo: "\u201c", middot: "\u00b7", bull: "\u2022", copy: "\u00a9", reg: "\u00ae", trade: "\u2122" };
+  return input.replace(/&(#\d+|#x[0-9a-f]+|[a-z]+);/gi, (m, code: string) => {
+    if (code[0] === "#") {
+      const n = code[1].toLowerCase() === "x" ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
+      return Number.isFinite(n) && n > 0 && n < 0x110000 ? String.fromCodePoint(n) : m;
+    }
+    const v = named[code.toLowerCase()];
+    return v ?? m;
+  });
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -182,8 +195,14 @@ serve(async (req) => {
         const articleHtml = await articleResponse.text();
         console.log("📝 HTML content length:", articleHtml.length);
 
-        const titleMatch = /<title>(.*?)<\/title>/i.exec(articleHtml);
-        title = titleMatch?.[1]?.trim() || "Untitled Article";
+        // Pages such as Substack put attributes on <title> (data-rh="true") or span lines,
+        // which the old /<title>(.*?)<\/title>/ missed, giving "Untitled Article".
+        // og:title is the fallback. Entities like &nbsp; and &amp; are decoded.
+        const titleMatch = /<title\b[^>]*>([\s\S]*?)<\/title>/i.exec(articleHtml);
+        const ogMatch = /<meta[^>]+property=["']og:title["'][^>]*content=["']([^"']*)["']/i.exec(articleHtml)
+          || /<meta[^>]+content=["']([^"']*)["'][^>]*property=["']og:title["']/i.exec(articleHtml);
+        const rawTitle = (titleMatch?.[1] || ogMatch?.[1] || "").replace(/\s+/g, " ").trim();
+        title = decodeEntities(rawTitle).replace(/\s+/g, " ").trim() || "Untitled Article";
         console.log("📌 Extracted title:", title);
 
         // Prefer the page's main content over menus and footers when the page
@@ -195,6 +214,7 @@ serve(async (req) => {
           .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
           .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, "")
           .replace(/<[^>]+>/g, " ")
+          .replace(/&(?:#\d+|#x[0-9a-f]+|[a-z]+);/gi, (m) => decodeEntities(m))
           .replace(/\s+/g, " ")
           .trim()
           .substring(0, 10000);
