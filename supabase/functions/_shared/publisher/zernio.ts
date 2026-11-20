@@ -130,24 +130,44 @@ export class ZernioPublisher implements Publisher {
   }
 
   async publish(input: PublishInput): Promise<PublishResult> {
-    const payload = {
-      content: input.text,
-      platforms: [{ platform: input.platform, accountId: input.accountId }],
-      scheduledFor: input.scheduledFor,
-      timezone: input.timezone,
-      status: "scheduled",
-      mediaItems: input.imageUrl ? [{ type: "image", url: input.imageUrl }] : undefined,
-    };
+    // Immediate vs scheduled: Zernio asks for exactly one timing mode
+    // (publishNow wins over scheduledFor; docs.zernio.com/posts/create-post).
+    const payload = input.publishNow
+      ? {
+          content: input.text,
+          platforms: [{ platform: input.platform, accountId: input.accountId }],
+          publishNow: true,
+          mediaItems: input.imageUrl ? [{ type: "image", url: input.imageUrl }] : undefined,
+        }
+      : {
+          content: input.text,
+          platforms: [{ platform: input.platform, accountId: input.accountId }],
+          scheduledFor: input.scheduledFor,
+          timezone: input.timezone,
+          status: "scheduled",
+          mediaItems: input.imageUrl ? [{ type: "image", url: input.imageUrl }] : undefined,
+        };
     const body = await this.#request(`/posts`, {
       method: "POST",
       body: JSON.stringify(payload),
+      headers: input.idempotencyKey ? { "Idempotency-Key": input.idempotencyKey } : {},
     });
     const post = body?.post ?? body;
     const externalPostId = post?._id ?? post?.id;
     if (!externalPostId) {
       throw new Error("Zernio create post returned no post id");
     }
-    return { externalPostId, status: post?.status ?? "scheduled", raw: body };
+    const platformPostUrl =
+      post?.platformPostUrl ?? body?.platformPostUrl ??
+      post?.results?.[0]?.platformPostUrl ?? body?.results?.[0]?.platformPostUrl ?? undefined;
+    return { externalPostId, status: post?.status ?? (input.publishNow ? "published" : "scheduled"), platformPostUrl, raw: body };
+  }
+
+  async publishScheduledNow(postId: string): Promise<void> {
+    await this.#request(`/posts/${encodeURIComponent(postId)}`, {
+      method: "PUT",
+      body: JSON.stringify({ publishNow: true }),
+    });
   }
 
   async updateSchedule(postId: string, scheduledFor: string, timezone: string): Promise<void> {
