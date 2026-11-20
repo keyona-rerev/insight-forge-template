@@ -37,7 +37,7 @@ const App = () => (
         <AuthProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter basename="/insightforge-app">
+          <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <SchedulingHandoffPanel />
             <Routes>
               <Route path="/auth" element={<Auth />} />
