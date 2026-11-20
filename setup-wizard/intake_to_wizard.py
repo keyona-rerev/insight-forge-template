@@ -73,7 +73,7 @@ def main(path):
     for k in WIZARD_KEYS:
         if vals.get(k):
             print(f"{k}={vals[k]}")
-    print("# Long Strategy fields - enter these in the app by hand (Settings > Strategy):")
+    print("# Strategy fields - put these into the launch pack:")
     for k in STRATEGY_FIELDS:
         if vals.get(k):
             print(f"# {k}={vals[k]}")
