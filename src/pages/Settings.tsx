@@ -35,7 +35,7 @@ const AI_USAGE = [
   { name: "Draft revision", trigger: "Feedback and prose-cleanup revisions use the Claude subscription queue.", fn: "regenerate-draft-with-feedback / revise-draft", status: "subscription" },
   { name: "Reference card summary and relevance", trigger: "Card summaries and relevance scoring use separate queue jobs. Results are applied when settled; low-scoring queue cards are archived. Deployment is complete; organic lifecycle verification is still pending.", fn: "process-reference-card / score-relevance", status: "subscription" },
   { name: "Public source discovery", trigger: "The subscription search route is deployed. Live WebSearch capability is not yet verified; search stays disabled until public topics are deliberately saved.", fn: "search-sources", status: "unverified" },
-  { name: "Branded visuals", trigger: "The visual migration remains off and unmerged. No renders are being initiated as part of this migration. Renderer costs and activation are separate decisions.", fn: "generate-draft-visual / preview-visual", status: "unavailable" },
+  { name: "Branded visuals", trigger: "Branded images render through the Claude subscription worker, on demand from Visual Studio and as part of draft generation. No paid image API is used.", fn: "generate-draft-visual / preview-visual", status: "subscription" },
 ];
 
 // Same list CadenceTab uses for per-slot timezone. This one sets the
@@ -338,8 +338,8 @@ const Settings = () => {
           <CardContent className="space-y-4">
             <div className="rounded-lg border p-3 space-y-1">
               <p className="font-medium">Claude Code (your Claude subscription)</p>
-              <p className="text-sm">Drafts are written by a Claude Code worker running in GitHub Actions on your Claude subscription. A queued job has not completed yet. No API key is needed for this path.</p>
-              <p className="text-sm text-muted-foreground">Source discovery is deployed with live capability still unverified. Visual generation remains off while its migration and rendering cost controls are reviewed.</p>
+              <p className="text-sm">Drafts are written by a Claude Code worker running in GitHub Actions on your Claude subscription. No API key is needed for this path.</p>
+              <p className="text-sm text-muted-foreground">Source discovery is deployed with live capability still unverified. Branded visual generation is included and renders through the same subscription worker.</p>
             </div>
             <Button onClick={handleSave} disabled={loading}>
               {loading ? "Saving..." : "Save Settings"}
@@ -363,8 +363,8 @@ const Settings = () => {
               <p className="text-sm text-muted-foreground mt-1">A daily sweep fires at 13:20 UTC year-round - 8:20 AM Central in daylight time, 7:20 AM Central after the November clock change - and schedules every approved post to your connected platform at its slot time. Scheduled posts can be repaired in place with read-back verification, without cancelling and republishing.</p>
             </div>
             <div className="rounded-lg border p-3">
-              <p className="font-medium">Current operating state (as of October 29, 2026)</p>
-              <p className="text-sm text-muted-foreground mt-1">Draft generation and revisions use the subscription queue. Card summary and relevance queue releases are deployed, with organic lifecycle verification still pending. Source discovery is deployed with live WebSearch capability still unverified; visual generation remains off. Deployment status is not proof that a queued job has completed.</p>
+              <p className="font-medium">Current operating state</p>
+              <p className="text-sm text-muted-foreground mt-1">Draft generation and revisions use the subscription queue. Card summary and relevance queue releases are deployed, with organic lifecycle verification still pending. Source discovery is deployed with live WebSearch capability still unverified; visual generation renders through the same subscription worker. Deployment status is not proof that a queued job has completed.</p>
             </div>
           </CardContent>
         </Card>
