@@ -273,7 +273,7 @@ export const ApprovedTab = () => {
     return {
       label: "Not confirmed scheduled",
       badgeClass: "bg-orange-100 text-orange-800 border-orange-300",
-      message: draft.publish_error || "Approved a while ago, but no scheduled confirmation is on record. The handoff may have been interrupted (closed tab, dropped request) or may still be finishing. Nothing has posted. Retry below is safe — it will not create a duplicate.",
+      message: draft.publish_error || "Approved a while ago, but no scheduled confirmation is on record. The handoff may have been interrupted (closed tab, dropped request) or may still be finishing. Before retrying, check whether this post already shows as scheduled on LinkedIn or in your scheduler; retrying one that already scheduled can duplicate it. If nothing is scheduled, retry below.",
     };
   };
 
@@ -303,7 +303,7 @@ export const ApprovedTab = () => {
               Scheduling ({schedulingDrafts.length})
             </CardTitle>
             <CardDescription className="text-slate-700">
-              Approved and being sent to the scheduler now. This can take up to about a minute. This page updates itself when it lands — nothing to retry.
+              Approved and being sent to the scheduler now. This usually finishes within a minute or so. This page updates itself as it goes. Nothing to do here.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -325,7 +325,7 @@ export const ApprovedTab = () => {
                   Needs attention ({attentionDrafts.length})
                 </CardTitle>
                 <CardDescription className="text-amber-800">
-                  These drafts were approved but did not schedule. Fix the cause, then retry. Nothing here has posted.
+                  These drafts were approved, but no scheduled confirmation is on record. Read the note on each before retrying.
                 </CardDescription>
               </div>
               {attentionDrafts.length > 1 && (
