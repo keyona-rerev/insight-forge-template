@@ -91,6 +91,28 @@ serve(async (req) => {
 
     const publisher = getPublisher();
 
+    // Already scheduled with the provider (approve scheduled it for its slot).
+    // Creating a second post with the same text is rejected by the provider as
+    // duplicate content (HTTP 409 within 24h), so move the EXISTING post to
+    // now + 60s instead.
+    if (draft.external_post_id && draft.publish_status === "scheduled") {
+      const moveTo = new Date(Date.now() + 60_000).toISOString();
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      try {
+        await publisher.updateSchedule(draft.external_post_id, moveTo, tz);
+        await supabase.from("drafts").update({
+          publish_status: "published_now",
+          publish_error: null,
+          scheduled_for: moveTo,
+        }).eq("id", draft.id);
+        return json({ ok: true, status: "published_now", externalPostId: draft.external_post_id, scheduledFor: moveTo, moved: true });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Provider reschedule failed";
+        console.error("post-now: updateSchedule failed", draft.id, msg);
+        return json({ ok: false, status: "failed", error: `Could not move the scheduled post to now: ${msg}` }, 502);
+      }
+    }
+
     // The connected account for this draft's platform.
     const { data: conn } = await supabase
       .from("social_connections")
@@ -151,6 +173,7 @@ serve(async (req) => {
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Provider publish failed";
+      console.error("post-now: publish failed", draft.id, msg);
 
       // See file header: only mark failed if a concurrent call hasn't
       // already set external_post_id for this draft in the meantime.
@@ -168,13 +191,11 @@ serve(async (req) => {
           .select("external_post_id, publish_status")
           .eq("id", draft.id)
           .single();
-        return json({
-          ok: true,
-          alreadyPosted: current?.publish_status === "published_now",
-          alreadyScheduled: current?.publish_status === "scheduled",
-          externalPostId: current?.external_post_id,
-          status: current?.publish_status,
-        });
+        if (current?.publish_status === "published_now") {
+          return json({ ok: true, alreadyPosted: true, externalPostId: current.external_post_id, status: current.publish_status });
+        }
+        // Not posted. Report the provider error instead of a false success.
+        return json({ ok: false, status: current?.publish_status ?? "failed", externalPostId: current?.external_post_id, error: msg }, 502);
       }
 
       return json({ ok: false, status: "failed", error: msg }, 502);
