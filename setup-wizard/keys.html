@@ -75,6 +75,7 @@ button:disabled{opacity:.4;cursor:default}
 <li>The saved file is plain text. Save it only in your private keys folder. Never in OneDrive, Dropbox, Git or email.</li>
 </ul>
 </div>
+<div class="warn" style="background:#eef6f2;border-color:#9cc9b4"><p style="margin:0 0 6px"><b>Already saved a keys file?</b> Choose it here. This page fills every box from it, so you do not type anything again.</p><p style="margin:0 0 6px"><input type="file" id="loadfile" accept=".txt,text/plain"></p><p id="loadmsg" style="margin:0"></p></div>
 <div class="dots" id="dots"></div>
 <div class="nav"><button id="back" type="button">&larr; Back</button><span class="ctr" id="ctr"></span><button id="next" type="button">Next &rarr;</button></div>
 <div id="root"></div>
@@ -412,6 +413,13 @@ function refresh(){
   F.forEach(function(f){renderForm(f,els[f.v].box)});updateProg()}
 var cur=0;
 function cardOk(i){var e=els[F[i].v],x=e.inp.value.trim();return !!x&&(!F[i].ok||F[i].ok(x)===true)}
+function loadKeys(text){var seen={},n=0,skipped=[];text.split(/\r?\n/).forEach(function(l){var m=l.match(/^\s*([A-Za-z0-9_\-]+)\s*=\s*(.*?)\s*$/);if(m&&m[1]!=="IMAGES")seen[m[1]]=m[2]});
+  for(var pass=0;pass<2;pass++)Object.keys(seen).forEach(function(k){var e=els[k];if(!e||!e.inp||e.inp.type==="hidden")return;if(pass===0){e.inp.value=seen[k];n++}if(e.inp.oninput)e.inp.oninput()});
+  Object.keys(seen).forEach(function(k){if(!els[k])skipped.push(k)});
+  var firstTodo=F.findIndex(function(f){return !cardOk(F.indexOf(f))});
+  document.getElementById("loadmsg").textContent="Filled "+n+" boxes from your file. "+(firstTodo>=0?"The glowing cards still need a value.":"Every card is done.")+(skipped.length?" Not used by this page: "+skipped.join(", ")+".":"");
+  go(firstTodo>=0?firstTodo:0)}
+document.getElementById("loadfile").onchange=function(ev){var f=ev.target.files&&ev.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){loadKeys(String(r.result||""))};r.readAsText(f)};
 function paint(){
   var d=document.getElementById("dots");d.innerHTML="";
   F.forEach(function(f,i){var ok=cardOk(i),b=el("button",{type:"button",title:f.t,className:(ok?"done":"todo")+(i===cur?" cur":"")},[String(i+1)]);b.onclick=function(){go(i)};d.appendChild(b);
