@@ -38,6 +38,20 @@ button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .bar{position:sticky;bottom:0;background:var(--bg);padding:12px 0;border-top:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .opt{font-weight:700;background:#eef2ff;border-left:4px solid #3b5bdb;padding:8px 10px;margin:14px 0 6px}
 .prog{flex:1;min-width:220px}.ptxt{font-weight:600;font-size:.9rem}.track{height:10px;background:#e4e0d4;border-radius:6px;overflow:hidden;margin-top:4px}#pfill{height:100%;width:0;background:var(--accent);transition:width .2s}
+.card.todo{border-color:#f0b429;box-shadow:0 0 0 3px rgba(240,180,41,.22),0 0 22px rgba(240,180,41,.38)}
+.card.done{border-color:var(--accent)}
+.card.slide{animation:slidein .28s ease-out}
+@keyframes slidein{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+.secl{font-family:Newsreader,Georgia,serif;font-size:1.1rem;font-weight:600;margin:0 0 6px}
+.dots{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 2px}
+.dots button{width:22px;height:22px;padding:0;border-radius:50%;font-size:.7rem;border:2px solid #cfc8b4;background:#fff}
+.dots button.done{background:var(--accent);border-color:var(--accent);color:#fff}
+.dots button.todo{border-color:#f0b429;box-shadow:0 0 8px rgba(240,180,41,.7)}
+.dots button.cur{outline:3px solid var(--ink);outline-offset:1px}
+.nav{display:flex;gap:10px;align-items:center;margin:8px 0}.nav .ctr{flex:1;text-align:center;font-weight:600;font-size:.9rem}
+button.nextok{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 12px rgba(15,118,110,.45)}
+button:disabled{opacity:.4;cursor:default}
+@media (prefers-reduced-motion:reduce){.card.slide{animation:none}}
 </style>
 </head>
 <body>
@@ -60,7 +74,10 @@ button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 <li>The saved file is plain text. Save it only in your private keys folder. Never in OneDrive, Dropbox, Git or email.</li>
 </ul>
 </div>
+<div class="dots" id="dots"></div>
+<div class="nav"><button id="back" type="button">&larr; Back</button><span class="ctr" id="ctr"></span><button id="next" type="button">Next &rarr;</button></div>
 <div id="root"></div>
+<div class="nav"><button id="back2" type="button">&larr; Back</button><span class="ctr"></span><button id="next2" type="button">Next &rarr;</button></div>
 <div class="bar"><div class="prog"><div class="ptxt" id="ptxt"></div><div class="track"><div id="pfill"></div></div></div><button class="primary" id="save">Save keys file</button><span class="msg" id="status"></span></div>
 </main>
 <script>
@@ -311,8 +328,8 @@ function renderForm(f,box){
   if(ol.children.length)box.appendChild(ol);
 }
 F.forEach(function(f){
-  if(f.sec)root.appendChild(el("h2",{},[f.sec]));
-  var card=el("div",{className:"card"});
+  var card=el("div",{className:"card todo"});
+  if(f.sec)card.appendChild(el("div",{className:"secl"},[f.sec]));
   card.appendChild(el("span",{className:"tag"},["Required"]));
   var h=el("h3",{},[f.t+" "]);h.appendChild(el("span",{className:"var"},[f.v]));card.appendChild(h);
   card.appendChild(el("b",{},["Why"]));card.appendChild(ul(f.why));
@@ -333,13 +350,30 @@ F.forEach(function(f){
     if(!x){if(f.req&&touched){m.className="msg bad";m.textContent="Required."}return !f.req}
     if(f.ok){var r=f.ok(x);if(r!==true){m.className="msg bad";m.textContent=r;inp.className="bad";return false}}
     m.className="msg ok";m.textContent="Looks right.";inp.className="ok";return true};
+  var _chk=els[f.v].chk;els[f.v].cardEl=card;
+  els[f.v].chk=function(t){var r=_chk(t),ok=!!inp.value.trim()&&r===true;card.classList.toggle("todo",!ok);card.classList.toggle("done",ok);return r};
+  inp.onkeydown=function(e){if(e.key==="Enter"&&els[f.v].chk()&&inp.value.trim()){e.preventDefault();go(cur+1)}};
   inp.oninput=inp.onchange=function(){touched=true;if(f.norm){var n=f.norm(inp.value.trim());if(n!==inp.value.trim())inp.value=n}els[f.v].chk();refresh()};
 });
-function updateProg(){var n=0,t=0;F.forEach(function(f){if(!f.req)return;t++;var x=V(f.v);if(x&&(!f.ok||f.ok(x)===true))n++});document.getElementById("ptxt").textContent=n+" of "+t+" required items done"+(n===t?". Ready to save.":"");document.getElementById("pfill").style.width=(t?Math.round(100*n/t):0)+"%"}
+function updateProg(){var n=0,t=0;F.forEach(function(f){if(!f.req)return;t++;var x=V(f.v);if(x&&(!f.ok||f.ok(x)===true))n++});document.getElementById("ptxt").textContent=n+" of "+t+" required items done"+(n===t?". Ready to save.":"");document.getElementById("pfill").style.width=(t?Math.round(100*n/t):0)+"%";if(typeof paint==="function"&&els[F[0].v]&&els[F[0].v].cardEl&&typeof cur!=="undefined")paint()}
 function refresh(){
   F.forEach(function(f){if(f.auto){var e=els[f.v],nv=f.auto();if(nv&&(!e.inp.value||e.inp.value===e.autoVal)){e.inp.value=nv;e.autoVal=nv;e.chk()}}});
   F.forEach(function(f){renderForm(f,els[f.v].box)});updateProg()}
+var cur=0;
+function cardOk(i){var e=els[F[i].v],x=e.inp.value.trim();return !!x&&(!F[i].ok||F[i].ok(x)===true)}
+function paint(){
+  var d=document.getElementById("dots");d.innerHTML="";
+  F.forEach(function(f,i){var ok=cardOk(i),b=el("button",{type:"button",title:f.t,className:(ok?"done":"todo")+(i===cur?" cur":"")},[String(i+1)]);b.onclick=function(){go(i)};d.appendChild(b);
+    els[f.v].cardEl.classList.toggle("todo",!ok);els[f.v].cardEl.classList.toggle("done",ok)});
+  var last=F.length-1,okc=cardOk(cur);
+  ["ctr"].forEach(function(){document.getElementById("ctr").textContent="Card "+(cur+1)+" of "+F.length});
+  [["back","back2"],["next","next2"]].forEach(function(p,k){p.forEach(function(id){var b=document.getElementById(id);b.disabled=k===0?cur===0:cur===last;b.className=(k===1&&okc)?"nextok":""})});
+}
+function go(i,noscroll){if(i<0||i>=F.length)return;cur=i;F.forEach(function(f,j){var c=els[f.v].cardEl;c.hidden=j!==i;c.classList.remove("slide")});var c=els[F[i].v].cardEl;void c.offsetWidth;c.classList.add("slide");paint();if(!noscroll)window.scrollTo({top:0,behavior:"smooth"})}
+["back","back2"].forEach(function(id){document.getElementById(id).onclick=function(){go(cur-1)}});
+["next","next2"].forEach(function(id){document.getElementById(id).onclick=function(){go(cur+1)}});
 refresh();
+go(0,true);
 function build(){
   var L=["INSIGHT FORGE KEYS. Made on "+new Date().toISOString().slice(0,10)+". Keep private. Never commit, sync or email.",""];
   F.forEach(function(f){var v=els[f.v].inp.value.trim().replace(/[\r\n]+/g," ");L.push(f.v+" = "+v)});L.push("IMAGES = YES");
@@ -347,7 +381,7 @@ function build(){
 document.getElementById("save").onclick=function(){
   var bad=[];F.forEach(function(f){if(!els[f.v].chk(true))bad.push(f.t)});
   var s=document.getElementById("status");
-  if(bad.length){s.className="msg bad";s.textContent="Fix "+bad.length+" item(s) first: "+bad.slice(0,3).join("; ")+(bad.length>3?"…":"");var b=document.querySelector("input.bad,select.bad,.msg.bad");if(b)b.scrollIntoView({block:"center"});return}
+  if(bad.length){s.className="msg bad";s.textContent="Fix "+bad.length+" item(s) first: "+bad.slice(0,3).join("; ")+(bad.length>3?"…":"");var b=document.querySelector("input.bad,select.bad,.msg.bad");var fi=-1;F.forEach(function(f,i){if(fi<0&&!cardOk(i))fi=i});if(fi>=0)go(fi);return}
   var text=build(),name="KEYS-TO-FILL.txt";
   function fallback(){var u=URL.createObjectURL(new Blob([text],{type:"text/plain"})),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},4000);s.className="msg ok";s.textContent="Downloaded. Move it into your private keys folder, then delete it from Downloads."}
   if(window.showSaveFilePicker){
