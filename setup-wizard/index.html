@@ -64,9 +64,10 @@ ul.pts{margin:10px 0;padding-left:1.25em}ul.pts li{margin:4px 0}ul.pts.hint{padd
 <p><label for="impBox"><strong>Import values</strong> (paste key=value lines or JSON, for example from your intake record)</label></p>
 <textarea id="impBox" rows="4" style="width:100%;font:inherit;padding:8px;border:1px solid var(--line);border-radius:8px"></textarea>
 <p><button id="impBtn">Import</button> <span id="impMsg" class="err"></span></p></details>
+<p class="note" style="margin:0 0 12px"><b>Faster install:</b> <a href="keys.html" style="color:var(--accent)">collect all your keys once on a private page</a>, save one file, and skip the paste steps later.</p>
 <div class="card" id="card"></div>
 <div class="nav"><button id="back">Back</button><button class="primary" id="next">Next</button></div>
-<ul class="pts note"><li>Values you type here stay in this browser only.</li><li>This wizard never asks for passwords, keys or tokens.</li><li>Enter those only inside your own accounts.</li></ul>
+<ul class="pts note"><li>Values you type here stay in this browser only.</li><li>This wizard never asks for passwords, keys or tokens.</li><li>The separate keys page does, but it has no network access and saves nothing in the browser.</li></ul>
 </main>
 <script>
 /*

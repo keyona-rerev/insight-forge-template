@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Keys page. Runs only in this browser tab. No network, no storage, no cookies. The Content-Security-Policy below blocks every outbound request, so a typed value cannot leave this page. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collect your keys</title>
+<style>
+:root{--bg:#f7f5f0;--ink:#14213d;--accent:#0f766e;--line:#d9d4c7;--card:#fff;--bad:#b91c1c;--warn:#b45309}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 Inter,system-ui,sans-serif}
+main{max-width:820px;margin:0 auto;padding:24px 16px 80px}
+h1{font-family:Newsreader,Georgia,serif;font-size:2rem;margin:.2em 0}
+h2{font-family:Newsreader,Georgia,serif;margin:28px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:12px 0}
+.card h3{margin:0 0 2px;font-size:1.05rem}
+.var{font:.85rem ui-monospace,Menlo,monospace;color:#075e58;background:#d8eee8;border-radius:4px;padding:1px 6px}
+ul{margin:6px 0;padding-left:1.2em}li{margin:2px 0}
+.row{display:flex;gap:8px;margin-top:8px}
+input[type=text],input[type=password],input[type=email],select{flex:1;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;min-width:0}
+input.bad{border-color:var(--bad)}input.ok{border-color:var(--accent)}
+button,a.btn{font:inherit;padding:9px 14px;border-radius:8px;border:1px solid var(--ink);background:var(--card);cursor:pointer;text-decoration:none;color:var(--ink);white-space:nowrap}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button:disabled{opacity:.4;cursor:not-allowed}
+.msg{font-size:.85rem;min-height:1.1em;margin-top:4px}.msg.bad{color:var(--bad)}.msg.ok{color:var(--accent)}
+.tag{font-size:.75rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#075e58}
+.warn{border-left:4px solid var(--warn);background:#fff7e6;padding:10px 14px;border-radius:6px;margin:14px 0}
+.bar{position:sticky;bottom:0;background:var(--bg);padding:12px 0;border-top:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<main>
+<h1>Collect your keys</h1>
+<ul>
+<li>Do this once, before the install.</li>
+<li>Each card has a link to make the key, why you need it, and what you lose without it.</li>
+<li>Paste each value into its box. Then click <b>Save keys file</b>.</li>
+<li>Claude reads the file from your computer. You paste nothing else, anywhere.</li>
+</ul>
+<div class="warn">
+<ul>
+<li>This page has no network access. It cannot send what you type. Your browser enforces that.</li>
+<li>Nothing is saved in the browser. If you close or refresh this tab, the boxes are empty.</li>
+<li>The saved file is plain text. Save it only in your private keys folder. Never in OneDrive, Dropbox, Git or email.</li>
+</ul>
+</div>
+<div id="root"></div>
+<div class="bar"><button class="primary" id="save">Save keys file</button><span class="msg" id="status"></span></div>
+</main>
+<script>
+(function(){
+"use strict";
+var F=[
+{sec:"A. Required. Nothing works without these.",t:"Claude sign-in token in the GitHub worker",v:"CLAUDE_CODE_OAUTH_TOKEN",req:1,secret:1,
+ why:["Lets the worker write drafts and images on your Claude plan.","No API key. No per-use charge."],
+ without:["No drafts. No images."],
+ how:["Install Claude Code, then run this in a terminal: claude setup-token","Needs a paid Claude plan. The token lasts about 1 year."],
+ link:["Install Claude Code","https://docs.claude.com/en/docs/claude-code/overview"],
+ ok:function(x){return /^sk-ant-oat/.test(x)||"Should start with sk-ant-oat. Run: claude setup-token"}},
+{t:"Date you made the Claude token",v:"CLAUDE_TOKEN_DATE_YYYY-MM-DD",req:1,type:"date",
+ why:["Sets the 1-year renewal reminder."],without:["No renewal date."],how:["Use today's date if you just made it."],
+ ok:function(x){return /^\d{4}-\d{2}-\d{2}$/.test(x)||"Use YYYY-MM-DD."}},
+{t:"GitHub token for the worker in GitHub",v:"SETUP_GH_TOKEN",req:1,secret:1,
+ why:["One token does two jobs: the installer sets worker secrets, and the app wakes the worker."],
+ without:["The install cannot connect the app to the worker."],
+ how:["Resource owner: the account that owns the worker repo.","Repository access: ONLY the worker repo.","Permissions: Contents = Read and write. Secrets = Read and write. Actions = Read.","Expiration: 1 year."],
+ link:["Make a fine-grained token","https://github.com/settings/personal-access-tokens/new"],
+ ok:function(x){return /^github_pat_/.test(x)||"Should start with github_pat_. Make a fine-grained token."}},
+{t:"Worker repo name in GitHub",v:"WORKER_REPO_OWNER_SLASH_NAME",req:1,
+ why:["The private repo that holds the worker."],without:["The installer does not know where the worker is."],how:["Format: owner/name"],
+ ok:function(x){return /^[\w.-]+\/[\w.-]+$/.test(x)||"Use owner/name."}},
+{t:"App repo name in GitHub",v:"APP_REPO_OWNER_SLASH_NAME",req:1,
+ why:["The public repo that holds the app and its website."],without:["The installer does not know where to publish the app."],how:["Format: owner/name"],
+ ok:function(x){return /^[\w.-]+\/[\w.-]+$/.test(x)||"Use owner/name."}},
+{t:"Supabase access token in Supabase",v:"SUPABASE_ACCESS_TOKEN",req:1,secret:1,
+ why:["Lets the installer build the database, deploy functions and set the app's secrets."],without:["No database. No functions."],
+ how:["Name it: insight-forge install"],
+ link:["Make an access token","https://supabase.com/dashboard/account/tokens"],
+ ok:function(x){return /^sbp_/.test(x)||"Should start with sbp_."}},
+{t:"Supabase project ref in Supabase",v:"SUPABASE_PROJECT_REF_20_LETTERS",req:1,
+ why:["Names your project."],without:["The installer does not know which project to build."],
+ how:["It is the 20 lowercase letters in your project's web address."],
+ link:["Open your Supabase projects","https://supabase.com/dashboard/projects"],
+ ok:function(x){return /^[a-z]{20}$/.test(x)||"Should be exactly 20 lowercase letters."}},
+{t:"Supabase database password in Supabase",v:"SUPABASE_DB_PASSWORD",req:1,secret:1,
+ why:["Direct database access if it is ever needed."],without:["No direct database access."],
+ how:["Supabase shows it once, when you create the project. Copy it at that moment."],
+ link:["Create a project","https://supabase.com/dashboard/new"],
+ ok:function(x){return x.length>=8||"Too short."}},
+{t:"App login email in Supabase",v:"APP_LOGIN_EMAIL",req:1,type:"email",
+ why:["The one account that signs in to the app. Sign-up stays off."],without:["No one can sign in."],
+ how:["If you use the Resend test sender, this must equal your Resend account email."],
+ ok:function(x){return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x)||"Not an email."}},
+{t:"App login password in Supabase",v:"APP_LOGIN_PASSWORD",req:1,secret:1,
+ why:["The password for that one login."],without:["No one can sign in."],how:["Pick one you will remember. At least 10 characters."],
+ ok:function(x){return x.length>=10||"Use at least 10 characters."}},
+
+{sec:"B. Optional. Each one turns on a feature.",t:"Zernio API key in Supabase",v:"ZERNIO_API_KEY",secret:1,
+ why:["Turns on publishing to LinkedIn and connecting the company page."],
+ without:["Drafts, review and approval still work. Nothing can publish."],
+ how:["Account > API keys."],link:["Open Zernio","https://zernio.com"],
+ ok:function(x){return x.length>=16||"Looks too short."}},
+{t:"Resend API key in Supabase",v:"RESEND_API_KEY",secret:1,
+ why:["Turns on alert emails, such as a low review queue."],
+ without:["No alert emails. Everything else works. Leave it empty to turn alerts off."],
+ how:["Permission: Sending access.","Your Resend account email must equal the app login email."],
+ link:["Make a Resend key","https://resend.com/api-keys"],
+ ok:function(x){return /^re_/.test(x)||"Should start with re_."}},
+{t:"Gmail newsletter intake",v:"GMAIL_INTAKE",yn:1,
+ why:["Newsletters you label loom-queue become source cards."],without:["Sources come only from the launch pack, websites and feeds."],
+ how:["You do one Google sign-in during setup. Claude fills in the script values itself."]},
+{t:"LinkedIn company page connection",v:"LINKEDIN_CONNECT",yn:1,
+ why:["Turns on posting to the company page. Needs the Zernio key."],without:["No LinkedIn posting."],
+ how:["You do one LinkedIn sign-in during setup."]},
+{t:"LinkedIn company page name",v:"LINKEDIN_COMPANY_PAGE_NAME",
+ why:["So Claude picks the page, not your personal profile."],without:["Claude cannot confirm the right page."],how:["Type the page name exactly."]},
+{t:"Images",v:"IMAGES",yn:1,
+ why:["Turns on draft images. The worker makes them on your Claude plan."],without:["Text-only drafts."],how:[]},
+{t:"GitHub Actions spending cap",v:"GITHUB_BUDGET_CAP_SET",yn:1,
+ why:["Stops any surprise charge from the worker."],without:["Unlimited Actions spend is possible."],
+ how:["Set it: Actions, $0, stop usage ON. Then choose YES."],
+ link:["Open GitHub budgets","https://github.com/settings/billing/budgets"]}
+];
+var root=document.getElementById("root"),els={};
+function el(tag,attrs,kids){var e=document.createElement(tag);for(var k in attrs||{})e[k]=attrs[k];(kids||[]).forEach(function(c){e.appendChild(typeof c==="string"?document.createTextNode(c):c)});return e}
+function ul(a){return el("ul",{},a.map(function(x){return el("li",{},[x])}))}
+F.forEach(function(f){
+  if(f.sec)root.appendChild(el("h2",{},[f.sec]));
+  var card=el("div",{className:"card"});
+  card.appendChild(el("span",{className:"tag"},[f.req?"Required":"Optional"]));
+  var h=el("h3",{},[f.t+" "]);h.appendChild(el("span",{className:"var"},[f.v]));card.appendChild(h);
+  if(f.why&&f.why.length){card.appendChild(el("b",{},["Why"]));card.appendChild(ul(f.why))}
+  if(f.without&&f.without.length){card.appendChild(el("b",{},["Without it"]));card.appendChild(ul(f.without))}
+  if(f.how&&f.how.length){card.appendChild(el("b",{},["How"]));card.appendChild(ul(f.how))}
+  var row=el("div",{className:"row"}),inp;
+  if(f.link){var a=el("a",{className:"btn",href:f.link[1],target:"_blank",rel:"noopener noreferrer"},[f.link[0]+" ↗"]);row.appendChild(a)}
+  if(f.yn){inp=el("select");["","YES","NO"].forEach(function(o){inp.appendChild(el("option",{value:o},[o||"Choose…"]))})}
+  else{inp=el("input",{type:f.secret?"password":(f.type||"text"),autocomplete:"off",spellcheck:false,placeholder:f.req?"Required":"Optional"});inp.setAttribute("data-lpignore","true")}
+  row.appendChild(inp);
+  if(f.secret){var sh=el("button",{type:"button"},["Show"]);sh.onclick=function(){inp.type=inp.type==="password"?"text":"password";sh.textContent=inp.type==="password"?"Show":"Hide"};row.appendChild(sh)}
+  card.appendChild(row);var m=el("div",{className:"msg"});card.appendChild(m);root.appendChild(card);
+  els[f.v]={f:f,inp:inp,m:m};
+  function chk(){var x=inp.value.trim();m.className="msg";m.textContent="";inp.className="";
+    if(!x){if(f.req&&touched)m.className="msg bad",m.textContent="Required.";return !f.req}
+    if(f.ok){var r=f.ok(x);if(r!==true){m.className="msg bad";m.textContent=r;inp.className="bad";return false}}
+    m.className="msg ok";m.textContent="Looks right.";inp.className="ok";return true}
+  var touched=false;els[f.v].chk=function(t){touched=t||touched;return chk()};
+  inp.oninput=inp.onchange=function(){touched=true;chk()};
+});
+function build(){
+  var L=["INSIGHT FORGE KEYS. Made on "+new Date().toISOString().slice(0,10)+". Keep private. Never commit, sync or email.",""];
+  F.forEach(function(f){var v=els[f.v].inp.value.trim().replace(/[\r\n]+/g," ");L.push(f.v+" = "+v)});
+  return L.join("\r\n")+"\r\n"}
+document.getElementById("save").onclick=function(){
+  var bad=[];F.forEach(function(f){if(!els[f.v].chk(true))bad.push(f.t)});
+  var s=document.getElementById("status");
+  if(bad.length){s.className="msg bad";s.textContent="Fix "+bad.length+" item(s) first: "+bad.slice(0,3).join("; ")+(bad.length>3?"…":"");var b=document.querySelector("input.bad,select.bad,.msg.bad");if(b)b.scrollIntoView({block:"center"});return}
+  var text=build(),name="KEYS-TO-FILL.txt";
+  function fallback(){var u=URL.createObjectURL(new Blob([text],{type:"text/plain"})),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},4000);s.className="msg ok";s.textContent="Downloaded. Move it into your private keys folder, then delete it from Downloads."}
+  if(window.showSaveFilePicker){
+    window.showSaveFilePicker({suggestedName:name,types:[{description:"Text",accept:{"text/plain":[".txt"]}}]}).then(function(h){return h.createWritable()}).then(function(w){return w.write(text).then(function(){return w.close()})}).then(function(){s.className="msg ok";s.textContent="Saved. Tell Claude: filled."}).catch(function(e){if(e&&e.name==="AbortError"){s.className="msg";s.textContent="Cancelled."}else fallback()});
+  }else fallback();
+};
+})();
+</script>
+</body>
+</html>
