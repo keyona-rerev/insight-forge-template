@@ -107,7 +107,7 @@ export const ApprovedTab = () => {
       if (data?.ok || data?.alreadyPosted) {
         toast.success(data.alreadyPosted
           ? `Already posted to ${label}.`
-          : `Posted to ${label}! Goes live within ~60 seconds.`);
+          : `Posted to ${label}.`);
         loadDrafts();
       } else {
         toast.error(data?.error || `Post Now failed — check ${label} connection in Settings.`);
