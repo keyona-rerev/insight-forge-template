@@ -36,6 +36,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .warn{border-left:4px solid var(--warn);background:#fff7e6;padding:10px 14px;border-radius:6px;margin:14px 0}
 .legend span{display:inline-block;margin-right:14px}
 .bar{position:sticky;bottom:0;background:var(--bg);padding:12px 0;border-top:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.opt{font-weight:700;background:#eef2ff;border-left:4px solid #3b5bdb;padding:8px 10px;margin:14px 0 6px}
 </style>
 </head>
 <body>
@@ -75,12 +76,21 @@ var F=[
  without:["No drafts. No images."],
  link:["Official terminal guide","https://code.claude.com/docs/en/terminal-guide"],
  form:function(){return[
-  {t:"Open PowerShell. Press the Windows key, type PowerShell, press Enter. (On a Mac, open Terminal.)"},
-  {l:"Check if Claude is installed. Paste, press Enter. If it prints a version number, skip to step 4.",c:"claude --version"},
-  {l:"Windows PowerShell only. Install Claude. Paste, press Enter. Then close and reopen PowerShell.",c:"irm https://claude.ai/install.ps1 | iex"},
-  {l:"Mac only. Install Claude. Paste in Terminal, press Enter. Then close and reopen Terminal.",c:"curl -fsSL https://claude.ai/install.sh | bash"},
-  {l:"Make the token. Paste, press Enter once. A browser opens. Sign in to your Claude account. Approve the page.",c:"claude setup-token"},
-  {t:"Go back to the terminal. It shows a token that starts with sk-ant-oat. Select it, copy it, and paste it into the box below."}]}
+  {h:"First, find your option. Open PowerShell (press the Windows key, type PowerShell, press Enter). On a Mac, open Terminal. Paste the line below and press Enter."},
+  {c:"claude --version"},
+  {t:"A version number appears: use OPTION A. The words not recognized or command not found appear: use OPTION B."},
+  {h:"OPTION A. Claude Code is already installed on this computer."},
+  {l:"Make the token. Paste, press Enter once. A browser opens. Sign in to your Claude account. Click Approve.",c:"claude setup-token"},
+  {t:"Make the terminal window wide first (click the maximize square). Then the token stays on one line."},
+  {t:"Go back to the terminal. It shows a token that starts with sk-ant-oat. Select all of it with the mouse. Copy it. Click the box below this card. Paste it."},
+  {h:"OPTION B. Claude Code was never installed on this computer."},
+  {l:"Windows PowerShell. Install Claude Code. Paste, press Enter. Wait until the prompt comes back.",c:"irm https://claude.ai/install.ps1 | iex"},
+  {l:"Mac Terminal instead. Install Claude Code. Paste, press Enter. Wait until the prompt comes back.",c:"curl -fsSL https://claude.ai/install.sh | bash"},
+  {t:"Close the terminal. Open it again. This step is needed. Without it the next command fails."},
+  {l:"Check the install. Paste, press Enter. A version number must appear.",c:"claude --version"},
+  {l:"Make the token. Paste, press Enter once. A browser opens. Sign in to your Claude account. Click Approve.",c:"claude setup-token"},
+  {t:"Make the terminal window wide first (click the maximize square). Then the token stays on one line."},
+  {t:"Go back to the terminal. It shows a token that starts with sk-ant-oat. Select all of it with the mouse. Copy it. Click the box below this card. Paste it."}]}
  ,ok:function(x){return /^sk-ant-oat/.test(x)||"Should start with sk-ant-oat."}},
 {t:"Date you made the Claude token",v:"CLAUDE_TOKEN_DATE_YYYY-MM-DD",req:1,type:"date",
  why:["Sets the 1-year renewal reminder."],without:["No renewal date."],
@@ -91,29 +101,48 @@ var F=[
  without:["Claude cannot find your repos."],
  link:["Open GitHub","https://github.com/"],
  form:function(){return[
-  {t:"Click the button above. Sign in to the GitHub account that will own this install."},
+  {h:"OPTION A. You already have a GitHub account."},
+  {t:"Click the button above. Sign in."},
   {t:"At the top right, click your round picture."},
   {t:"The menu opens. Near the top it says Signed in as, then your username."},
-  {t:"Click the box below this card. Type the username exactly. Letters, numbers and hyphens only."}]},
+  {t:"Click the box below this card. Type the username exactly. Letters, numbers and hyphens only."},
+  {h:"OPTION B. You do not have a GitHub account yet."},
+  {a:"https://github.com/signup",l:"Click this to open the GitHub sign-up page."},
+  {t:"Type your email address. Type a new password. Type a username. Write the password in your password manager. Do not type it on this page."},
+  {t:"Solve the puzzle. GitHub emails you a code. Type the code on the GitHub page."},
+  {t:"Click the box below this card. Type the username you chose. Letters, numbers and hyphens only."}]},
  ok:function(x){return /^[A-Za-z0-9-]{1,39}$/.test(x)||"Letters, numbers and hyphens only."}},
 {t:"Worker repo name in GitHub",v:"WORKER_REPO_OWNER_SLASH_NAME",req:1,
- why:["The private repo that holds the worker. You made it from the worker template."],without:["The installer does not know where the worker is."],
+ why:["A repo is a folder on GitHub that stores code. You have not made this one yet. The steps below make it.","It holds the worker. The worker writes your drafts and images.","It is private. Only you can see it."],without:["The worker has no place to run. No drafts. No images."],
+ link:["Open the GitHub import page","https://github.com/new/import"],
  auto:function(){var u=V("GITHUB_USERNAME");return u?u+"/insightforge-worker":""},
  form:function(){var w=V("WORKER_REPO_OWNER_SLASH_NAME"),u=V("GITHUB_USERNAME");return[
-  {t:"The box below fills in by itself from your GitHub username. You type nothing."},
-  /^[\w.-]+\/[\w.-]+$/.test(w)?{a:"https://github.com/"+w,l:"Check it: click this. If your worker repo opens, the name is right. Go to the next card."}:need("","your GitHub username"),
-  u?{a:"https://github.com/"+u+"?tab=repositories",l:"Only if GitHub shows 404 Not Found: click this, click your worker repo, and copy its name (owner/name) into the box."}:{t:""}]},
+  u?{l:"Click the button above. If GitHub asks, sign in as this account.",p:u}:need("","your GitHub username"),
+  {l:"Box: Your source repository's clone URL. Copy this and paste it there.",c:"https://github.com/keyona-rerev/knowledge-loom-worker-template"},
+  u?{l:"Owner. Open the dropdown and choose this account.",p:u}:{t:""},
+  {l:"Repository name. Copy this and paste it there.",c:"insightforge-worker"},
+  {l:"Privacy. Choose this option.",p:"Private"},
+  {t:"Click Begin import. Wait until GitHub says Import complete. This takes 1 to 2 minutes."},
+  {t:"The box below this card fills in by itself. You type nothing."},
+  /^[\w.-]+\/[\w.-]+$/.test(w)?{a:"https://github.com/"+w,l:"Check it. Click this. Your repo opens. If it says 404, the import is not finished or the owner is wrong. Wait, then reload."}:{t:""}]},
  ok:function(x){return /^[\w.-]+\/[\w.-]+$/.test(x)||"Use owner/name."}},
 {t:"App repo name in GitHub",v:"APP_REPO_OWNER_SLASH_NAME",req:1,
- why:["The public repo that holds the app and its website."],without:["The installer does not know where to publish the app."],
+ why:["A repo is a folder on GitHub that stores code. You have not made this one yet. The steps below make it.","It will hold the app and its website.","It starts empty. Claude fills it later in the install."],without:["The app has no place to be published."],
+ link:["Open the GitHub new repo page","https://github.com/new"],
  auto:function(){var u=V("GITHUB_USERNAME");return u?u+"/insight-forge":""},
  form:function(){var w=V("APP_REPO_OWNER_SLASH_NAME"),u=V("GITHUB_USERNAME");return[
-  {t:"The box below fills in by itself with the standard name, insight-forge. You type nothing."},
-  /^[\w.-]+\/[\w.-]+$/.test(w)?{a:"https://github.com/"+w,l:"Check it: click this. If your app repo opens, the name is right. Go to the next card."}:need("","your GitHub username"),
-  u?{a:"https://github.com/"+u+"?tab=repositories",l:"Only if GitHub shows 404 Not Found: you named it differently. Click this, click your app repo, and copy its name (owner/name) into the box."}:{t:""}]},
+  u?{l:"Click the button above. If GitHub asks, sign in as this account.",p:u}:need("","your GitHub username"),
+  u?{l:"Owner. Open the dropdown and choose this account.",p:u}:{t:""},
+  {l:"Repository name. Copy this and paste it there.",c:"insight-forge"},
+  {l:"Visibility. Choose this option.",p:"Public"},
+  {t:"Leave Add README, Add .gitignore and Choose a license all OFF. The repo must be empty."},
+  {t:"Click Create repository."},
+  {t:"If GitHub says the name already exists, type insight-forge-2 as the name. Then type the same name in the box below this card."},
+  {t:"The box below this card fills in by itself. You type nothing."},
+  /^[\w.-]+\/[\w.-]+$/.test(w)?{a:"https://github.com/"+w,l:"Check it. Click this. Your empty repo opens. If it says 404, the owner or the name is wrong."}:{t:""}]},
  ok:function(x){return /^[\w.-]+\/[\w.-]+$/.test(x)||"Use owner/name."}},
 {t:"GitHub token for the worker in GitHub",v:"SETUP_GH_TOKEN",req:1,secret:1,
- why:["One token does two jobs: the installer sets worker secrets, and the app wakes the worker.","It reaches the worker repo only."],
+ why:["One token does two jobs: the installer sets worker secrets, and the app wakes the worker.","It reaches the worker repo only. You made that repo in the card above.","The page below lists the repo only because it now exists."],
  without:["The install cannot connect the app to the worker."],
  link:["Open the GitHub token page","https://github.com/settings/personal-access-tokens/new"],
  form:function(){var w=repo("WORKER_REPO_OWNER_SLASH_NAME"),o=w.split("/")[0];return[
@@ -215,6 +244,7 @@ function renderForm(f,box){
   box.innerHTML="";
   var rows=f.form(),ol=el("ol",{className:"form"});
   rows.forEach(function(r){
+    if(r.h){if(ol.children.length)box.appendChild(ol);box.appendChild(el("div",{className:"opt"},[r.h]));ol=el("ol",{className:"form"});return}
     var li=el("li");
     if(r.t===""){return}
     if(r.miss){li.appendChild(el("span",{className:"miss"},[r.miss]))}
@@ -229,7 +259,7 @@ function renderForm(f,box){
     }
     ol.appendChild(li);
   });
-  box.appendChild(ol);
+  if(ol.children.length)box.appendChild(ol);
 }
 F.forEach(function(f){
   if(f.sec)root.appendChild(el("h2",{},[f.sec]));
