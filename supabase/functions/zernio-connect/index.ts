@@ -164,7 +164,18 @@ serve(async (req) => {
       // client's account on the same key is never picked.
       const defaultProfile = await publisher.getDefaultProfileId().catch(() => null);
       if (defaultProfile) {
-        const own = accounts.filter((a) => a.profileId === defaultProfile);
+        let own = accounts.filter((a) => a.profileId === defaultProfile);
+        if (!own.length && Deno.env.get("ZERNIO_PROFILE_ID")) {
+          // Bounded read-retry: in the seconds right after OAuth completes,
+          // the provider's account list can lag the connection it just
+          // created. Re-list once before fail-closing so a completed connect
+          // is not reported as missing. Read-only: no account is adopted,
+          // moved, or modified, and the fail-closed branch below is
+          // unchanged when the retry still finds nothing.
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+          accounts = await publisher.listAccounts(PLATFORM);
+          own = accounts.filter((a) => a.profileId === defaultProfile);
+        }
         if (own.length) accounts = own;
         else if (Deno.env.get("ZERNIO_PROFILE_ID")) {
           // A pinned-profile install never falls back to workspace-wide
