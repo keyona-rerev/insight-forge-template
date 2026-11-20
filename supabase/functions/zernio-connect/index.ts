@@ -84,6 +84,23 @@ async function listLinkedInOrganizations(accountId: string): Promise<any[]> {
 
 const orgName = (o: any) => o?.localizedName || o?.name || o?.vanityName || String(o?.id ?? "");
 
+// Raw LinkedIn account rows from Zernio. The docs do not name the field that
+// separates a personal profile from a company page, so isOrgAccount checks the
+// likely names (accountType, type, isOrganization).
+async function listRawLinkedInAccounts(): Promise<any[]> {
+  const res = await fetch("https://zernio.com/api/v1/accounts?platform=linkedin", {
+    headers: { Authorization: `Bearer ${Deno.env.get("ZERNIO_API_KEY") ?? ""}` },
+  });
+  const text = await res.text();
+  let body: any = null;
+  try { body = text ? JSON.parse(text) : null; } catch { body = null; }
+  if (!res.ok) throw new Error(body?.error || body?.message || text || `HTTP ${res.status}`);
+  const rows: any[] = body?.accounts ?? body?.data ?? [];
+  return rows.filter((a) => a?.platform === "linkedin");
+}
+const isOrgAccount = (a: any) =>
+  /org|company/i.test(String(a?.accountType ?? a?.type ?? "")) || a?.isOrganization === true;
+
 // Switch to a company page. One page -> use it. Several pages -> use the one
 // matching organizationId, else report needsChoice with the list.
 async function switchToCompany(
@@ -149,10 +166,37 @@ serve(async (req) => {
       if (!accounts.length) {
         return json({ connected: false, error: `No ${platformLabel(PLATFORM)} account found on the provider yet` }, 404);
       }
-      const acct = accounts[0];
+      let acct = accounts[0];
       let warning: string | null = null;
       let switchedName: string | null = null;
+      let foundOrg = false;
+      let accountsDebug: unknown = null;
       if (PLATFORM === "linkedin") {
+        // Zernio can hold the personal profile AND the company page as separate
+        // accounts. Use the company page when it exists.
+        try {
+          const rawRows = await listRawLinkedInAccounts();
+          const org = rawRows.find(isOrgAccount);
+          if (org) {
+            acct = {
+              ...acct,
+              accountId: org.accountId ?? org._id ?? org.id,
+              displayName: org.displayName ?? org.name ?? acct.displayName,
+              username: org.username ?? acct.username,
+            };
+            foundOrg = true;
+          } else {
+            accountsDebug = rawRows.map((a) => ({
+              idEnd: String(a?._id ?? a?.accountId ?? a?.id ?? "").slice(-5),
+              name: a?.displayName ?? a?.name ?? a?.username,
+              keys: Object.keys(a ?? {}),
+              accountType: a?.accountType,
+              type: a?.type,
+            }));
+          }
+        } catch (_e) { /* fall through to the switch attempt below */ }
+      }
+      if (PLATFORM === "linkedin" && !foundOrg) {
         try {
           const r = await switchToCompany(acct.accountId);
           if (r.needsChoice) {
@@ -184,7 +228,7 @@ serve(async (req) => {
         .select()
         .single();
       if (error) return json({ error: error.message }, 500);
-      return json({ connected: true, connection: data, warning });
+      return json({ connected: true, connection: data, warning, accountsDebug });
     }
 
     // switch_type -> change a connected LinkedIn account between company page
