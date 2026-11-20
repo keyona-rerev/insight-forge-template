@@ -71,8 +71,8 @@ export const ApprovedTab = () => {
     if (data?.primary_color) setAccentColor(data.primary_color);
   };
 
-  const loadDrafts = async () => {
-    setLoading(true);
+  const loadDrafts = async (quiet = false) => {
+    if (!quiet) setLoading(true);
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { setLoading(false); return; }
     const [{ data, error }, { data: fmt }] = await Promise.all([
@@ -210,6 +210,18 @@ export const ApprovedTab = () => {
     return null;
   };
 
+  // Scheduling handoff is slow but real: approve fires publish-to-zernio,
+  // which can take ~30s (cold start + provider call + slot walk) before it
+  // writes publish_status. During that window the row is NOT stuck — it is
+  // in flight. reviewed_at is stamped at approval, so a recently-approved
+  // draft with no publish_status yet is treated as still scheduling, not
+  // "never sent". Past the grace window the same shape means the invoke
+  // genuinely dropped, and the stuck warning below applies as before.
+  const SCHEDULING_GRACE_MS = 90000;
+  const isScheduling = (d: Draft) =>
+    !d.publish_status && !!d.reviewed_at &&
+    (Date.now() - new Date(d.reviewed_at).getTime()) < SCHEDULING_GRACE_MS;
+
   // "Stuck" covers three shapes, all meaning the same thing to the user
   // (approved, but nothing is actually going out) even though they arrive
   // differently:
@@ -223,16 +235,28 @@ export const ApprovedTab = () => {
   //    "silent limbo" case: scheduled_for can still be populated (stamped
   //    at generation time, independent of the handoff), which is what made
   //    it look superficially like a real schedule.
-  // Note: a draft sits in the null-status bucket for the few seconds
-  // between approval and publish-to-zernio actually completing even in the
-  // success case — a brief false positive here is expected and harmless
-  // (Retry is idempotent against an in-flight or already-succeeded call);
-  // the alternative (silently missing real limbo cases) is worse.
+  // Null publish_status only counts as stuck once the approval is older
+  // than the scheduling grace window above; anything newer is shown as
+  // "Scheduling..." and polled instead, so a normal slow handoff never
+  // surfaces as a false warning.
   const isStuck = (d: Draft) =>
-    d.publish_status === "needs_attention" || d.publish_status === "failed" || !d.publish_status;
+    !isScheduling(d) &&
+    (d.publish_status === "needs_attention" || d.publish_status === "failed" || !d.publish_status);
 
   const attentionDrafts = drafts.filter(isStuck);
   const attentionIds = new Set(attentionDrafts.map((d) => d.id));
+  const schedulingDrafts = drafts.filter(isScheduling);
+  const schedulingIds = new Set(schedulingDrafts.map((d) => d.id));
+
+  // While any draft is mid-handoff to the scheduler, poll quietly so the
+  // card swaps from "Scheduling..." to its real state without a manual
+  // refresh. Stops once nothing is in flight; a draft that ages past the
+  // grace window surfaces under Needs attention instead.
+  useEffect(() => {
+    if (schedulingDrafts.length === 0) return;
+    const t = setInterval(() => loadDrafts(true), 5000);
+    return () => clearInterval(t);
+  }, [schedulingDrafts.length]);
 
   const getAttentionMeta = (draft: Draft) => {
     if (draft.publish_status === "failed") {
@@ -241,11 +265,15 @@ export const ApprovedTab = () => {
     if (draft.publish_status === "needs_attention") {
       return { label: "Not scheduled", badgeClass: "bg-amber-100 text-amber-800 border-amber-300", message: draft.publish_error || "No reason recorded." };
     }
-    // publish_status is null/undefined — never actually reached the scheduler.
+    // publish_status is null/undefined past the scheduling grace window.
+    // We cannot prove the handoff was dropped — only that no scheduled
+    // confirmation is on record. Say that, and note retry is idempotent
+    // (backend no-ops on an existing external_post_id), so it is safe
+    // even if the original attempt is still finishing.
     return {
-      label: "Never sent to scheduler",
+      label: "Not confirmed scheduled",
       badgeClass: "bg-orange-100 text-orange-800 border-orange-300",
-      message: draft.publish_error || "Approved, but the request to schedule it never completed (dropped network request, closed tab, or a timed-out request during approval). Nothing has posted — retry below.",
+      message: draft.publish_error || "Approved a while ago, but no scheduled confirmation is on record. The handoff may have been interrupted (closed tab, dropped request) or may still be finishing. Nothing has posted. Retry below is safe — it will not create a duplicate.",
     };
   };
 
@@ -254,6 +282,7 @@ export const ApprovedTab = () => {
   const formatOptionsForPlatform = platformFilter === ALL ? formats : formats.filter((f) => f.platform === platformFilter);
   const visibleDrafts = drafts.filter((d) => {
     if (attentionIds.has(d.id)) return false; // already shown in the Needs attention card above
+    if (schedulingIds.has(d.id)) return false; // shown in the Scheduling card while the handoff runs
     const fmt = d.format_id ? formatById.get(d.format_id) : undefined;
     if (platformFilter !== ALL && fmt?.platform !== platformFilter) return false;
     if (formatFilter !== ALL && d.format_id !== formatFilter) return false;
@@ -266,6 +295,26 @@ export const ApprovedTab = () => {
 
   return (
     <>
+      {schedulingDrafts.length > 0 && (
+        <Card className="mb-6 border-slate-300 bg-slate-50">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-slate-800 text-lg">
+              <RefreshCw className="h-5 w-5 animate-spin" />
+              Scheduling ({schedulingDrafts.length})
+            </CardTitle>
+            <CardDescription className="text-slate-700">
+              Approved and being sent to the scheduler now. This can take up to about a minute. This page updates itself when it lands — nothing to retry.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {schedulingDrafts.map((draft) => (
+              <div key={draft.id} className="flex items-center gap-2 rounded-md border border-slate-200 bg-white p-3">
+                <span className="font-medium truncate">{draft.title || draft.seed_insight}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
       {attentionDrafts.length > 0 && (
         <Card className="mb-6 border-amber-300 bg-amber-50">
           <CardHeader className="pb-3">
@@ -352,7 +401,7 @@ export const ApprovedTab = () => {
         </Card>
       ) : visibleDrafts.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
-          <p className="text-sm">{attentionDrafts.length > 0 && drafts.length === attentionDrafts.length ? "Every approved draft needs attention right now (see above)." : "No approved drafts match this filter."}</p>
+          <p className="text-sm">{schedulingDrafts.length > 0 && visibleDrafts.length === 0 && attentionDrafts.length === 0 ? "Everything approved is being scheduled right now (see above)." : attentionDrafts.length > 0 && drafts.length === attentionDrafts.length ? "Every approved draft needs attention right now (see above)." : "No approved drafts match this filter."}</p>
         </div>
       ) : (
         <div className="space-y-2">
