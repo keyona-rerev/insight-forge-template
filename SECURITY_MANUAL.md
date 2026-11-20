@@ -246,7 +246,6 @@ ORDER BY tablename, policyname;
 
 Before going live:
 
-- [ ] MAILGUN_SIGNING_KEY secret is set in production Supabase
 - [ ] Session timeout is configured (see Section 1)
 - [ ] npm audit shows no high/critical vulnerabilities
 - [ ] Dependabot is enabled (see Section 2)
