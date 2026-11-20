@@ -58,7 +58,6 @@ verify_jwt = false
 [functions.claude-job-status]
 verify_jwt = false
 
-<<<<<<< HEAD
 [functions.detect-logo]
 verify_jwt = true
 
