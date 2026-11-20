@@ -1,5 +1,6 @@
 import { regenerateWithFeedback } from "@/lib/regenerateDraft";
 import { VISUAL_GENERATION_AVAILABLE } from "@/lib/visualAvailability";
+import { trackScheduling } from "@/components/SchedulingHandoff";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -228,7 +229,7 @@ const DraftDetail = () => {
     } else {
       toast.success(VISUAL_GENERATION_AVAILABLE ? "Draft approved! Generating visual..." : "Draft approved!");
       await loadDraft();
-      (async () => {
+      trackScheduling(draft.id, draft.title || "Approved post", async (step) => {
         if (session?.user?.id) {
           try {
             if (VISUAL_GENERATION_AVAILABLE) {
@@ -241,25 +242,31 @@ const DraftDetail = () => {
             console.error("Visual generation error:", err);
           }
         }
+        step("scheduler");
         try {
           const { data } = await supabase.functions.invoke("publish-to-zernio", { body: { draftId: draft.id } });
+          loadDraft();
           if (data?.status === "scheduled") {
             const when = new Date(data.scheduledFor).toLocaleString();
             toast.success(data.basis === "rescheduled"
               ? `Slot time had passed; rescheduled to publish ${when}`
               : `Scheduled to publish ${when}`);
+            return { step: "scheduled", detail: when };
           } else if (data?.status === "needs_attention") {
             toast.warning(`Not scheduled: ${data.error}`);
+            return { step: "attention", detail: String(data.error ?? "") };
           } else if (data?.error) {
             toast.error(`Publish failed: ${data.error}`);
+            return { step: "failed", detail: String(data.error) };
           }
-          loadDraft();
+          return { step: "scheduled" };
         } catch (err) {
           console.error("Publish error:", err);
           await markUnreachedScheduler(draft.id);
           loadDraft();
+          return { step: "failed", detail: "Retry from the Approved tab." };
         }
-      })();
+      });
     }
   };
 

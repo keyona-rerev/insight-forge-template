@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { trackScheduling } from "@/components/SchedulingHandoff";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Check, X, Clock, CheckCheck, Ban, MessageCircle, AlertTriangle, Loader2, CheckCircle2, Wand2 } from "lucide-react";
@@ -177,7 +178,8 @@ export const PendingTab = () => {
     toast.success(VISUAL_GENERATION_AVAILABLE ? "Draft approved! Generating visual..." : "Draft approved!");
     settleAndRemove(draftId);
 
-    (async () => {
+    const title = drafts.find((d) => d.id === draftId)?.title || "Approved post";
+    trackScheduling(draftId, title, async (step) => {
       if (session?.user?.id) {
         try {
           if (VISUAL_GENERATION_AVAILABLE) {
@@ -190,6 +192,7 @@ export const PendingTab = () => {
           console.error("Visual generation error:", err);
         }
       }
+      step("scheduler");
       try {
         const { data } = await supabase.functions.invoke("publish-to-zernio", { body: { draftId } });
         if (data?.status === "scheduled") {
@@ -197,16 +200,21 @@ export const PendingTab = () => {
           toast.success(data.basis === "rescheduled"
             ? `Slot time had passed; rescheduled to publish ${when}`
             : `Scheduled to publish ${when}`);
+          return { step: "scheduled", detail: when };
         } else if (data?.status === "needs_attention") {
           toast.warning(`Not scheduled: ${data.error}`);
+          return { step: "attention", detail: String(data.error ?? "") };
         } else if (data?.error) {
           toast.error(`Publish failed: ${data.error}`);
+          return { step: "failed", detail: String(data.error) };
         }
+        return { step: "scheduled" };
       } catch (err) {
         console.error("Publish error:", err);
         await markUnreachedScheduler(draftId);
+        return { step: "failed", detail: "Retry from the Approved tab." };
       }
-    })();
+    });
   };
 
   // Prose-only pass: rewrites the post in place to cut specific AI-writing
@@ -396,7 +404,8 @@ export const PendingTab = () => {
         .eq("id", draftId);
       if (error) { toast.error(`Failed to update draft ${draftId}`); return; }
       if (bulkAction === "approve" && session?.user?.id) {
-        (async () => {
+        const title = drafts.find((d) => d.id === draftId)?.title || "Approved post";
+        trackScheduling(draftId, title, async (step) => {
           try {
             if (VISUAL_GENERATION_AVAILABLE) {
               await supabase.functions.invoke("generate-draft-visual", {
@@ -407,12 +416,19 @@ export const PendingTab = () => {
           } catch (err) {
             console.error("Visual generation error:", err);
           }
-          supabase.functions.invoke("publish-to-zernio", { body: { draftId } })
-            .catch((err) => {
-              console.error("Publish error:", err);
-              markUnreachedScheduler(draftId);
-            });
-        })();
+          step("scheduler");
+          try {
+            const { data } = await supabase.functions.invoke("publish-to-zernio", { body: { draftId } });
+            if (data?.status === "scheduled") return { step: "scheduled", detail: new Date(data.scheduledFor).toLocaleString() };
+            if (data?.status === "needs_attention") return { step: "attention", detail: String(data.error ?? "") };
+            if (data?.error) return { step: "failed", detail: String(data.error) };
+            return { step: "scheduled" };
+          } catch (err) {
+            console.error("Publish error:", err);
+            await markUnreachedScheduler(draftId);
+            return { step: "failed", detail: "Retry from the Approved tab." };
+          }
+        });
       }
     }
     toast.success(`${selectedDrafts.length} drafts ${bulkAction}ed`);

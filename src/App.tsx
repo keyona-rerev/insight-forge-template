@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import { SchedulingHandoffPanel } from "@/components/SchedulingHandoff";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -37,6 +38,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter basename="/insightforge-app">
+            <SchedulingHandoffPanel />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
