@@ -59,7 +59,7 @@ button{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid var(--in
   function store(){try{return window.localStorage;}catch(e){return null;}}
   function getSel(){try{var s=store();return s&&s.getItem('history:'+location.pathname);}catch(e){return null;}}
   function setSel(v){try{var s=store();if(s)s.setItem('history:'+location.pathname,v);}catch(e){}}
-  function loadVals(){try{var s=store(),o=JSON.parse((s&&s.getItem('wizard:'+location.pathname.replace(/history\.html$/,'')))||'null');vals=(o&&o.vals)||{};}catch(e){vals={};}}
+  function loadVals(){try{var s=store(),o=JSON.parse((s&&s.getItem('wizard:'+location.pathname.replace(/history(\.html)?$/,'')))||'null');vals=(o&&o.vals)||{};}catch(e){vals={};}}
   function val(k,dp){
     if(vals[k])return vals[k];
     for(var i=0;i<vars.length;i++)if(vars[i].key===k&&vars[i].derive&&!(dp>3)){
