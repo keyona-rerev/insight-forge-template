@@ -85,6 +85,44 @@ const scheduleDraft = async (
       return json({ error: "Draft is not approved" }, 409);
     }
 
+    const platform: string = draft.platform ?? "linkedin";
+    const label = platformLabel(platform);
+
+    // Helper to flag a draft as needing attention rather than posting.
+    const needsAttention = async (msg: string) => {
+      await supabase.from("drafts").update({
+        publish_status: "needs_attention",
+        publish_error: msg,
+      }).eq("id", draft.id);
+      return json({ ok: false, status: "needs_attention", error: msg }, 200);
+    };
+
+    // Provider readiness BEFORE the atomic claim. getPublisher() throws when
+    // the provider key is missing (e.g. ZERNIO_API_KEY unset on a fresh
+    // install); reached after the claim, that throw stranded the draft at
+    // 'scheduling' (seen in the 2026-11-19 clean test install). Fail visible
+    // and retryable instead, and never claim with no connected account.
+    let publisher: ReturnType<typeof getPublisher>;
+    try {
+      publisher = getPublisher();
+    } catch (e) {
+      return await needsAttention(
+        `Publishing provider is not configured on this install (${e instanceof Error ? e.message : String(e)}). Connect it in Settings first.`,
+      );
+    }
+
+    // The connected destination for this draft's platform.
+    const { data: conn } = await supabase
+      .from("social_connections")
+      .select("external_account_id, status")
+      .eq("user_id", userId)
+      .eq("provider", publisher.name)
+      .eq("platform", platform)
+      .maybeSingle();
+    if (!conn?.external_account_id) {
+      return await needsAttention(`${label} is not connected. Connect it in Settings first.`);
+    }
+
     // Atomic claim BEFORE any provider call. The pre-existing pattern was
     // read-check -> provider API -> write, which lets concurrent invocations
     // (UI double-click vs cron sweep) both reach the publisher and create
@@ -106,18 +144,6 @@ const scheduleDraft = async (
       return json({ ok: true, inProgress: true, status: "scheduling" });
     }
 
-    const platform: string = draft.platform ?? "linkedin";
-    const label = platformLabel(platform);
-
-    // Helper to flag a draft as needing attention rather than posting.
-    const needsAttention = async (msg: string) => {
-      await supabase.from("drafts").update({
-        publish_status: "needs_attention",
-        publish_error: msg,
-      }).eq("id", draft.id);
-      return json({ ok: false, status: "needs_attention", error: msg }, 200);
-    };
-
     const text = (draft.body ?? "").trim();
     if (!text) return await needsAttention("Draft has no body to publish");
     const maxChars = maxCharsFor(platform);
@@ -125,20 +151,6 @@ const scheduleDraft = async (
       return await needsAttention(
         `Draft is ${text.length} characters; ${label} allows ${maxChars}`,
       );
-    }
-
-    const publisher = getPublisher();
-
-    // The connected destination for this draft's platform.
-    const { data: conn } = await supabase
-      .from("social_connections")
-      .select("external_account_id, status")
-      .eq("user_id", userId)
-      .eq("provider", publisher.name)
-      .eq("platform", platform)
-      .maybeSingle();
-    if (!conn?.external_account_id) {
-      return await needsAttention(`${label} is not connected. Connect it in Settings first.`);
     }
 
     // Image lookup happens before the media-requirement check below, since

@@ -29,14 +29,14 @@ const corsHeaders = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-function alertHtml(count: number, threshold: number, appUrl: string): string {
+function alertHtml(count: number, threshold: number, appUrl: string, business: string): string {
   const reviewUrl = appUrl.replace(/\/$/, "") + "/review";
   return `<!DOCTYPE html><html><body style="font-family: Arial, Helvetica, sans-serif; color: #1f2937; line-height: 1.6; max-width: 560px; margin: 0 auto; padding: 24px;">
     <h2 style="margin: 0 0 8px;">Your approved queue is running low</h2>
     <p style="margin: 0 0 16px;">Only <strong>${count}</strong> approved post${count === 1 ? " is" : "s are"} still queued to publish. Your alert threshold is ${threshold}.</p>
     <p style="margin: 0 0 20px;">Once the queue hits zero, scheduled slots start firing with nothing to publish. A few minutes in Review keeps the pipeline moving.</p>
     <p style="margin: 0 0 24px;"><a href="${reviewUrl}" style="background: #7c3aed; color: #ffffff; padding: 10px 20px; border-radius: 6px; text-decoration: none; display: inline-block;">Go to Review</a></p>
-    <p style="font-size: 12px; color: #6b7280; margin: 0;">Sent by Knowledge Loom. You get one email per dip below your threshold; it re-arms after the queue recovers. Adjust the threshold in Settings under Review pipeline.</p>
+    <p style="font-size: 12px; color: #6b7280; margin: 0;">Sent by ${business}. You get one email per dip below your threshold; it re-arms after the queue recovers. Adjust the threshold in Settings under Review pipeline.</p>
   </body></html>`;
 }
 
@@ -73,11 +73,11 @@ serve(async (req) => {
 
     const { data: fromCfg } = await supabase
       .from("automation_config").select("value").eq("key", "alert_from_email").maybeSingle();
-    const fromAddress = fromCfg?.value || "Knowledge Loom <onboarding@resend.dev>";
+    const fromAddress = fromCfg?.value || "InsightForge <onboarding@resend.dev>";
 
     let profilesQuery = supabase
       .from("profiles")
-      .select("user_id, email, low_queue_email_threshold, low_queue_alert_active");
+      .select("user_id, email, business_name, low_queue_email_threshold, low_queue_alert_active");
     if (scopedUserId) profilesQuery = profilesQuery.eq("user_id", scopedUserId);
     const { data: profiles, error: profilesError } = await profilesQuery;
     if (profilesError) return json({ error: profilesError.message }, 500);
@@ -130,7 +130,8 @@ serve(async (req) => {
         continue;
       }
 
-      const subject = `Knowledge Loom: only ${approvedCount} approved post${approvedCount === 1 ? "" : "s"} left in the queue`;
+      const business = p.business_name?.trim() || "InsightForge";
+      const subject = `${business}: only ${approvedCount} approved post${approvedCount === 1 ? "" : "s"} left in the queue`;
       const sendRes = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
@@ -138,7 +139,7 @@ serve(async (req) => {
           from: fromAddress,
           to: [p.email],
           subject,
-          html: alertHtml(approvedCount, threshold, appUrl),
+          html: alertHtml(approvedCount, threshold, appUrl, business),
         }),
       });
 
