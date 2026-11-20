@@ -106,7 +106,7 @@ var els={};
 function V(k){return els[k]?els[k].inp.value.trim():""}
 function repo(k){var x=V(k);return /^[\w.-]+\/[\w.-]+$/.test(x)?x:""}
 function yearOut(){var d=new Date();d.setDate(d.getDate()+364);return d.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}
-function need(x,what){if(x)return x;var m=[[/Supabase project ref/i,"SUPABASE_PROJECT_REF_20_LETTERS"],[/app login email/i,"APP_LOGIN_EMAIL"],[/GitHub username/i,"GITHUB_USERNAME"],[/worker repo/i,"WORKER_REPO_OWNER_SLASH_NAME"],[/app repo/i,"APP_REPO_OWNER_SLASH_NAME"],[/the password/i,"APP_LOGIN_PASSWORD"]],k="";m.forEach(function(a){if(!k&&a[0].test(what))k=a[1]});return{miss:"This step needs a value from another card: "+what.replace(/ \(.*\)$/,"")+". The boxes are empty if you reloaded this page.",key:k}}
+function need(x,what){if(x)return x;var m=[[/Supabase project ref/i,"SUPABASE_PROJECT_REF_20_LETTERS"],[/app login email/i,"APP_LOGIN_EMAIL"],[/GitHub username/i,"GITHUB_USERNAME"],[/worker repo/i,"WORKER_REPO_OWNER_SLASH_NAME"],[/app repo/i,"APP_REPO_OWNER_SLASH_NAME"],[/the password/i,"APP_LOGIN_PASSWORD"],[/anon public key/i,"SUPABASE_ANON_KEY"],[/User UID/i,"APP_LOGIN_USER_ID"]],k="";m.forEach(function(a){if(!k&&a[0].test(what))k=a[1]});return{miss:"This step needs a value from another card: "+what.replace(/ \(.*\)$/,"")+". The boxes are empty if you reloaded this page.",key:k}}
 // row kinds: {t:text} plain step | {c:copy-text, l:label} copy box | {p:pick-text, l:label} click this option
 var F=[
 {sec:"A. Required. Nothing works without these.",t:"Claude sign-in token in the GitHub worker",v:"CLAUDE_CODE_OAUTH_TOKEN",req:1,secret:1,
@@ -281,6 +281,29 @@ var F=[
   u&&r?{l:"Site URL. Click Copy. Paste it into the Site URL box.",c:"https://"+u+".github.io/"+r+"/"}:{t:""}]},
  ok:function(x){return x.length>=10||"Use at least 10 characters."}},
 
+{t:"Supabase anon public key in Supabase",v:"SUPABASE_ANON_KEY",req:1,
+ why:["A public key. It lets your newsletter reader script reach your Supabase project.","You enter it once here. Later cards show it as a ready-to-copy box."],without:["The newsletter reader script cannot reach the app."],
+ form:function(){
+  var ref=V("SUPABASE_PROJECT_REF_20_LETTERS");
+  if(!/^[a-z]{20}$/.test(ref))return[need("","the Supabase project ref (an earlier card)")];
+  return[
+  {a:"https://supabase.com/dashboard/project/"+ref+"/settings/api-keys",l:"Click this. Supabase opens on the API keys page."},
+  {t:"Open the tab named Legacy anon, service_role API keys."},
+  {t:"Find the row named anon public. Click Copy next to it. It is a public key."},
+  {t:"Click the box below this card. Paste it."}]},
+ ok:function(x){return /^eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(x)||"Should start with eyJ and have two dots. Use the anon public key on the Legacy tab."}},
+{t:"App login User UID in Supabase",v:"APP_LOGIN_USER_ID",req:1,
+ why:["The ID of the app login you just created.","The newsletter reader script uses it to file newsletters under your login.","You enter it once here. Later cards show it as a ready-to-copy box."],without:["Newsletters do not appear in your account."],
+ form:function(){
+  var ref=V("SUPABASE_PROJECT_REF_20_LETTERS");
+  if(!/^[a-z]{20}$/.test(ref))return[need("","the Supabase project ref (an earlier card)")];
+  return[
+  {a:"https://supabase.com/dashboard/project/"+ref+"/auth/users",l:"Click this. Supabase opens on the Users page."},
+  {t:"Find the row with your app login email."},
+  {t:"Click the small copy icon next to the User UID in that row."},
+  {t:"Click the box below this card. Paste it."}]},
+ ok:function(x){return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x)||"Should look like 8-4-4-4-12 letters and numbers with dashes."}},
+
 {sec:"B. Also required. These turn on publishing, newsletters, alerts and spending safety.",t:"Zernio API key in Supabase",v:"ZERNIO_API_KEY",req:1,secret:1,
  why:["Turns on publishing to LinkedIn and connecting the company page."],
  without:["Drafts, review and approval still work. Nothing can publish."],
@@ -311,10 +334,8 @@ var F=[
   {t:"The template opens on the Project Details page. At the top right of that page, click the icon with two sheets of paper. It is the Make a copy button. It has no text on it. Your own copy opens in a new tab. All the steps below use your copy, not the template.",img:"copy"},
   {t:"On the left, click Editor (the angle brackets icon). Click Code.gs in the file list."},
   {l:"Line 8. Replace PASTE_SUPABASE_URL with this address. Click Copy, then paste it between the quote marks.",c:"https://"+ref+".supabase.co"},
-  {a:base+"/settings/api-keys",l:"Click this. Supabase opens on the API keys page. Open the tab named Legacy anon, service_role API keys. Click Copy next to the anon public key. It is a public key."},
-  {t:"Line 9. Replace PASTE_ANON_KEY with the anon key. Paste it between the quote marks. Paste it in the Google editor only. Do not paste it on this page."},
-  {a:base+"/auth/users",l:"Click this. Supabase opens on the Users page. Click the small copy icon next to the User UID of your app login."},
-  {t:"Line 10. Replace PASTE_USER_ID with the User UID. Paste it between the quote marks."},
+  /^eyJ/.test(V("SUPABASE_ANON_KEY"))?{l:"Line 9. Replace PASTE_ANON_KEY with this key. Click Copy. Paste it between the quote marks. Paste it in the Google editor only.",c:V("SUPABASE_ANON_KEY")}:need("","the Supabase anon public key (an earlier card)"),
+  /^[0-9a-f-]{36}$/i.test(V("APP_LOGIN_USER_ID"))?{l:"Line 10. Replace PASTE_USER_ID with this ID. Click Copy. Paste it between the quote marks.",c:V("APP_LOGIN_USER_ID")}:need("","the app login User UID (an earlier card)"),
   {t:"Click the Save icon (the floppy disk)."},
   {t:"At the top, open the function list. Choose start. Click Run."},
   {t:"Google asks to review permissions. Click Review permissions. Choose your Google account."},
