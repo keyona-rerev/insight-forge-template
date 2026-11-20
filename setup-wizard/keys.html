@@ -83,15 +83,33 @@ var F=[
  ,ok:function(x){return /^sk-ant-oat/.test(x)||"Should start with sk-ant-oat."}},
 {t:"Date you made the Claude token",v:"CLAUDE_TOKEN_DATE_YYYY-MM-DD",req:1,type:"date",
  why:["Sets the 1-year renewal reminder."],without:["No renewal date."],
- form:function(){var d=new Date(),z=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");return[{l:"If you made the token today, this is today's date. Choose it in the box below.",c:z}]},
+ form:function(){var d=new Date(),z=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");return[{l:"If you made the token today, click Copy, then click the box below this card and paste. If you made it another day, type that day as YYYY-MM-DD.",c:z}]},
  ok:function(x){return /^\d{4}-\d{2}-\d{2}$/.test(x)||"Use YYYY-MM-DD."}},
+{t:"GitHub username in GitHub",v:"GITHUB_USERNAME",req:1,
+ why:["Names the account that owns the install.","The page uses it to fill in your repo names, so you do not type them."],
+ without:["Claude cannot find your repos."],
+ link:["Open GitHub","https://github.com/"],
+ form:function(){return[
+  {t:"Click the button above. Sign in to the GitHub account that will own this install."},
+  {t:"At the top right, click your round picture."},
+  {t:"The menu opens. Near the top it says Signed in as, then your username."},
+  {t:"Click the box below this card. Type the username exactly. Letters, numbers and hyphens only."}]},
+ ok:function(x){return /^[A-Za-z0-9-]{1,39}$/.test(x)||"Letters, numbers and hyphens only."}},
 {t:"Worker repo name in GitHub",v:"WORKER_REPO_OWNER_SLASH_NAME",req:1,
  why:["The private repo that holds the worker. You made it from the worker template."],without:["The installer does not know where the worker is."],
- form:function(){return[{t:"Open your worker repo on GitHub. Its name has two parts: owner/name. Type it in the box below. Example: keyona-rerev/insightforge-worker"}]},
+ auto:function(){var u=V("GITHUB_USERNAME");return u?u+"/insightforge-worker":""},
+ form:function(){var w=V("WORKER_REPO_OWNER_SLASH_NAME"),u=V("GITHUB_USERNAME");return[
+  {t:"The box below fills in by itself from your GitHub username. You type nothing."},
+  /^[\w.-]+\/[\w.-]+$/.test(w)?{a:"https://github.com/"+w,l:"Check it: click this. If your worker repo opens, the name is right. Go to the next card."}:need("","your GitHub username"),
+  u?{a:"https://github.com/"+u+"?tab=repositories",l:"Only if GitHub shows 404 Not Found: click this, click your worker repo, and copy its name (owner/name) into the box."}:{t:""}]},
  ok:function(x){return /^[\w.-]+\/[\w.-]+$/.test(x)||"Use owner/name."}},
 {t:"App repo name in GitHub",v:"APP_REPO_OWNER_SLASH_NAME",req:1,
  why:["The public repo that holds the app and its website."],without:["The installer does not know where to publish the app."],
- form:function(){return[{t:"Open your app repo on GitHub. Type owner/name in the box below. Example: keyona-rerev/rerev-insightforge"}]},
+ auto:function(){var u=V("GITHUB_USERNAME");return u?u+"/insight-forge":""},
+ form:function(){var w=V("APP_REPO_OWNER_SLASH_NAME"),u=V("GITHUB_USERNAME");return[
+  {t:"The box below fills in by itself with the standard name, insight-forge. You type nothing."},
+  /^[\w.-]+\/[\w.-]+$/.test(w)?{a:"https://github.com/"+w,l:"Check it: click this. If your app repo opens, the name is right. Go to the next card."}:need("","your GitHub username"),
+  u?{a:"https://github.com/"+u+"?tab=repositories",l:"Only if GitHub shows 404 Not Found: you named it differently. Click this, click your app repo, and copy its name (owner/name) into the box."}:{t:""}]},
  ok:function(x){return /^[\w.-]+\/[\w.-]+$/.test(x)||"Use owner/name."}},
 {t:"GitHub token for the worker in GitHub",v:"SETUP_GH_TOKEN",req:1,secret:1,
  why:["One token does two jobs: the installer sets worker secrets, and the app wakes the worker.","It reaches the worker repo only."],
@@ -131,16 +149,16 @@ var F=[
 {t:"Supabase project ref in Supabase",v:"SUPABASE_PROJECT_REF_20_LETTERS",req:1,
  why:["Names your project."],without:["The installer does not know which project to build."],
  link:["Open your Supabase projects","https://supabase.com/dashboard/projects"],
- form:function(){return[{t:"Open your project. Copy the whole web address from the address bar. Paste it into the box below. The page keeps only the 20 letters."}]},
+ form:function(){return[{t:"Click the button above. Your projects list opens."},{t:"Click your project."},{t:"Click the address bar at the top of the browser, so the whole address is selected. Press Ctrl+C."},{t:"Click the box below this card. Press Ctrl+V. The page keeps only the 20 letters."}]},
  norm:function(x){var m=x.match(/\/project\/([a-z]{20})/);return m?m[1]:x},
  ok:function(x){return /^[a-z]{20}$/.test(x)||"Should be 20 lowercase letters, or the project web address."}},
 {t:"App login email in Supabase",v:"APP_LOGIN_EMAIL",req:1,type:"email",
  why:["The one account that signs in to the app. Sign-up stays off."],without:["No one can sign in."],
- form:function(){return[{t:"Type the email you will sign in with. If you use the Resend test sender, it must equal your Resend account email."}]},
+ form:function(){return[{t:"Click the box below this card."},{t:"Type the email address you will use to sign in to the app."},{t:"If you want alert emails, use the same email for your Resend account."}]},
  ok:function(x){return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x)||"Not an email."}},
 {t:"App login password in Supabase",v:"APP_LOGIN_PASSWORD",req:1,secret:1,
  why:["The password for that one login."],without:["No one can sign in."],
- form:function(){return[{t:"Choose a password you will remember. At least 10 characters. Type it in the box below."}]},
+ form:function(){return[{t:"Click the box below this card."},{t:"Type a new password for the app. At least 10 characters."},{t:"Write it in your password manager. You need it to sign in."}]},
  ok:function(x){return x.length>=10||"Use at least 10 characters."}},
 
 {sec:"B. Optional. Each one turns on a feature.",t:"Zernio API key in Supabase",v:"ZERNIO_API_KEY",secret:1,
@@ -172,7 +190,7 @@ var F=[
  form:function(){return[{t:"Choose YES or NO below."},{t:"If YES: during setup you do one LinkedIn sign-in. You must be an admin of the company page."}]}},
 {t:"LinkedIn company page name",v:"LINKEDIN_COMPANY_PAGE_NAME",
  why:["So Claude picks the page, not your personal profile."],without:["Claude cannot confirm the right page."],
- form:function(){return[{t:"Type the page name exactly as LinkedIn shows it."}]}},
+ form:function(){return[{t:"Open your company page on LinkedIn."},{t:"Copy the page name from the top of the page."},{t:"Click the box below this card. Paste it."}]}},
 {t:"Images",v:"IMAGES",yn:1,
  why:["Turns on draft images. The worker makes them on your Claude plan."],without:["Text-only drafts."],
  form:function(){return[{t:"Choose YES or NO below."}]}},
@@ -200,7 +218,9 @@ function renderForm(f,box){
   var rows=f.form(),ol=el("ol",{className:"form"});
   rows.forEach(function(r){
     var li=el("li");
+    if(r.t===""){return}
     if(r.miss){li.appendChild(el("span",{className:"miss"},[r.miss]))}
+    else if(r.a){li.appendChild(el("div",{className:"lbl"},[r.l]));li.appendChild(el("p",{},[el("a",{className:"btn",href:r.a,target:"_blank",rel:"noopener noreferrer"},["Open "+r.a.replace("https://","")+" ↗"])]))}
     else if(r.t){li.appendChild(document.createTextNode(r.t))}
     else{
       if(r.l)li.appendChild(el("div",{className:"lbl"},[r.l]));
@@ -237,7 +257,9 @@ F.forEach(function(f){
     m.className="msg ok";m.textContent="Looks right.";inp.className="ok";return true};
   inp.oninput=inp.onchange=function(){touched=true;if(f.norm){var n=f.norm(inp.value.trim());if(n!==inp.value.trim())inp.value=n}els[f.v].chk();refresh()};
 });
-function refresh(){F.forEach(function(f){renderForm(f,els[f.v].box)})}
+function refresh(){
+  F.forEach(function(f){if(f.auto){var e=els[f.v],nv=f.auto();if(nv&&(!e.inp.value||e.inp.value===e.autoVal)){e.inp.value=nv;e.autoVal=nv;e.chk()}}});
+  F.forEach(function(f){renderForm(f,els[f.v].box)})}
 refresh();
 function build(){
   var L=["INSIGHT FORGE KEYS. Made on "+new Date().toISOString().slice(0,10)+". Keep private. Never commit, sync or email.",""];
