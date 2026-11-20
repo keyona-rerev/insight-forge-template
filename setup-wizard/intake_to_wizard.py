@@ -2,7 +2,7 @@
 """Convert a filled Business Onboarding Intake into the wizard import block.
 
 Usage: python3 intake_to_wizard.py intake_filled.txt
-Prints key=value lines for the setup wizard's "Import values" box.
+Prints key=value lines to paste into the Claude Code chat after the installation brief.
 Exits non-zero and prints every problem found if the intake is not usable.
 """
 import re, sys
