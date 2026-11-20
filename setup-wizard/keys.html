@@ -104,7 +104,7 @@ var els={};
 function V(k){return els[k]?els[k].inp.value.trim():""}
 function repo(k){var x=V(k);return /^[\w.-]+\/[\w.-]+$/.test(x)?x:""}
 function yearOut(){var d=new Date();d.setDate(d.getDate()+364);return d.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}
-function need(x,what){return x||{miss:"Fill in "+what+" below first."}}
+function need(x,what){if(x)return x;var m=[[/Supabase project ref/i,"SUPABASE_PROJECT_REF_20_LETTERS"],[/app login email/i,"APP_LOGIN_EMAIL"],[/GitHub username/i,"GITHUB_USERNAME"],[/worker repo/i,"WORKER_REPO_OWNER_SLASH_NAME"],[/app repo/i,"APP_REPO_OWNER_SLASH_NAME"],[/the password/i,"APP_LOGIN_PASSWORD"]],k="";m.forEach(function(a){if(!k&&a[0].test(what))k=a[1]});return{miss:"This step needs a value from another card: "+what.replace(/ \(.*\)$/,"")+". The boxes are empty if you reloaded this page.",key:k}}
 // row kinds: {t:text} plain step | {c:copy-text, l:label} copy box | {p:pick-text, l:label} click this option
 var F=[
 {sec:"A. Required. Nothing works without these.",t:"Claude sign-in token in the GitHub worker",v:"CLAUDE_CODE_OAUTH_TOKEN",req:1,secret:1,
@@ -364,7 +364,7 @@ function renderForm(f,box){
     if(r.h){if(ol.children.length)box.appendChild(ol);box.appendChild(el("div",{className:"opt"},[r.h]));ol=el("ol",{className:"form"});return}
     var li=el("li");
     if(r.t===""){return}
-    if(r.miss){li.appendChild(el("span",{className:"miss"},[r.miss]))}
+    if(r.miss){li.appendChild(el("span",{className:"miss"},[r.miss]));if(r.key){var gi=F.findIndex(function(f){return f.v===r.key});if(gi>=0){li.appendChild(document.createTextNode(" "));li.appendChild(el("button",{type:"button",className:"btn",onclick:function(){go(gi)}},["Go to that card (card "+(gi+1)+")"]))}}}
     else if(r.a){li.appendChild(el("div",{className:"lbl"},[r.l]));li.appendChild(el("p",{},[el("a",{className:"btn",href:r.a,target:"_blank",rel:"noopener noreferrer"},["Open "+r.a.replace("https://","")+" ↗"])]))}
     else if(r.t){li.appendChild(document.createTextNode(r.t))}
     else{
