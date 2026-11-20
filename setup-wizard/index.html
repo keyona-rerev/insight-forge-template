@@ -46,7 +46,8 @@ details summary{cursor:pointer;font-weight:600;min-height:40px;padding:8px 0}
 .check b{display:block}.check span{color:var(--muted);font-size:.92rem}
 .note{font-size:.9rem;color:var(--muted)}
 button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #b45309;outline-offset:3px}
-</style>
+.refimg{margin:8px 0 2px}.refimg summary{cursor:pointer;display:inline-block;font-size:.85rem;font-weight:700;color:#0b5d4a;background:#eef6f2;border:1px solid #9cc9b4;border-radius:8px;padding:4px 10px;box-shadow:0 0 8px rgba(11,93,74,.35);list-style:none}.refimg summary::-webkit-details-marker{display:none}.refimg[open] summary{box-shadow:none}.refimg img{display:block;max-width:100%;margin-top:8px;border:1px solid #cfc8b4;border-radius:8px}.refimg .cap{font-size:.8rem;color:#4b5563;margin:4px 0 0}
+.refimg summary{min-height:44px;display:inline-flex;align-items:center}</style>
 </head>
 <body>
 <main>
@@ -120,7 +121,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #b453
       '<div class="foot"><span></span><button class="primary" id="go">I pasted it &rarr;</button></div></div>';},
     accept:function(){var it=[['Seen working','Login, draft, image and health check pass.'],['Nothing publishes','Schedules stay off.'],['Evidence','Claude gives you URLs and test results.'],['You accept','You accept the brand look.']];
       return '<div class="card glow"><h2>Finished means</h2>'+it.map(function(x,k){return '<label class="check"><input type="checkbox" data-ck="'+k+'"'+(st.vals['accept_'+k]==='1'?' checked':'')+'><div><b>'+x[0]+'</b><span>'+x[1]+'</span></div></label>';}).join('')+
-      '<h3>After the install, in the app</h3><ul><li>You load the launch pack in the app.</li><li>You connect LinkedIn.</li><li>You approve the image on one test draft.</li><li>You accept the brand look.</li></ul>'+
+      '<h3>After the install, in the app</h3><ul><li>You load the launch pack in the app.</li><li>You connect LinkedIn.</li><li>You approve the image on one test draft.</li><li>You accept the brand look.</li></ul>'+'<details class="refimg"><summary>Show me a picture of LinkedIn in Settings</summary><img src="img/lisettings.png" alt="The app Settings page, Publishing LinkedIn card. A red box marks the connected business page name. A second red box marks the Post to company page button."><p class="cap">Settings, then Publishing LinkedIn. Check the business page name and Post to company page.</p></details>'+''+
       '<div class="foot"><button id="reset">Start over</button><span></span></div></div>';}
   };
   function go(s){st.stage=s;save();render();window.scrollTo({top:0});}
