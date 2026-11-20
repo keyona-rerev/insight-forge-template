@@ -98,8 +98,12 @@ async function listRawLinkedInAccounts(): Promise<any[]> {
   const rows: any[] = body?.accounts ?? body?.data ?? [];
   return rows.filter((a) => a?.platform === "linkedin");
 }
+const orgHint = (a: any) =>
+  [a?.accountType, a?.type, a?.metadata?.accountType, a?.metadata?.type, a?.platformUserId, a?.profileUrl]
+    .map((x) => String(x ?? ""))
+    .join(" ");
 const isOrgAccount = (a: any) =>
-  /org|company/i.test(String(a?.accountType ?? a?.type ?? "")) || a?.isOrganization === true;
+  a?.isOrganization === true || /organization|\bcompany\b|\/company\//i.test(orgHint(a));
 
 // Switch to a company page. One page -> use it. Several pages -> use the one
 // matching organizationId, else report needsChoice with the list.
@@ -190,8 +194,10 @@ serve(async (req) => {
               idEnd: String(a?._id ?? a?.accountId ?? a?.id ?? "").slice(-5),
               name: a?.displayName ?? a?.name ?? a?.username,
               keys: Object.keys(a ?? {}),
-              accountType: a?.accountType,
-              type: a?.type,
+              platformUserId: a?.platformUserId,
+              profileUrl: a?.profileUrl,
+              metadata: JSON.stringify(a?.metadata ?? null).slice(0, 300),
+              permissions: JSON.stringify(a?.permissions ?? null).slice(0, 200),
             }));
           }
         } catch (_e) { /* fall through to the switch attempt below */ }
