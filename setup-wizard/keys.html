@@ -37,6 +37,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .legend span{display:inline-block;margin-right:14px}
 .bar{position:sticky;bottom:0;background:var(--bg);padding:12px 0;border-top:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .opt{font-weight:700;background:#eef2ff;border-left:4px solid #3b5bdb;padding:8px 10px;margin:14px 0 6px}
+.prog{flex:1;min-width:220px}.ptxt{font-weight:600;font-size:.9rem}.track{height:10px;background:#e4e0d4;border-radius:6px;overflow:hidden;margin-top:4px}#pfill{height:100%;width:0;background:var(--accent);transition:width .2s}
 </style>
 </head>
 <body>
@@ -44,6 +45,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 <h1>Collect your keys</h1>
 <ul>
 <li>Do this once, before the install.</li>
+<li>Every card marked Required is needed. The bar at the bottom shows how many are left.</li>
 <li>Each card is a list of numbered steps, in the order the website shows them.</li>
 <li>Dark boxes: click Copy, then paste into the website. Type nothing yourself.</li>
 <li>Yellow boxes: click or choose exactly that option on the website.</li>
@@ -59,7 +61,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 </ul>
 </div>
 <div id="root"></div>
-<div class="bar"><button class="primary" id="save">Save keys file</button><span class="msg" id="status"></span></div>
+<div class="bar"><div class="prog"><div class="ptxt" id="ptxt"></div><div class="track"><div id="pfill"></div></div></div><button class="primary" id="save">Save keys file</button><span class="msg" id="status"></span></div>
 </main>
 <script>
 (function(){
@@ -205,7 +207,7 @@ var F=[
  form:function(){return[{t:"Click the box below this card."},{t:"Type a new password for the app. At least 10 characters."},{t:"Write it in your password manager. You need it to sign in."}]},
  ok:function(x){return x.length>=10||"Use at least 10 characters."}},
 
-{sec:"B. Optional. Each one turns on a feature.",t:"Zernio API key in Supabase",v:"ZERNIO_API_KEY",secret:1,
+{sec:"B. Also required. These turn on publishing and newsletters.",t:"Zernio API key in Supabase",v:"ZERNIO_API_KEY",req:1,secret:1,
  why:["Turns on publishing to LinkedIn and connecting the company page."],
  without:["Drafts, review and approval still work. Nothing can publish."],
  link:["Open Zernio","https://zernio.com/dashboard"],
@@ -215,7 +217,16 @@ var F=[
   {l:"Key name. Paste into the name box.",c:"insightforge"},
   {t:"Copy the key when it shows. Paste it into the box below."}]}
  ,ok:function(x){return x.length>=16||"Looks too short."}},
-{t:"Resend API key in Supabase",v:"RESEND_API_KEY",secret:1,
+{t:"LinkedIn company page connection in Zernio",v:"LINKEDIN_CONNECT",req:1,fixed:"YES",
+ why:["Turns on posting to the company page.","The app needs this to publish. It uses the Zernio key above."],without:["No LinkedIn posting."],
+ form:function(){return[{t:"Nothing to enter here. This is already set to YES."},{t:"You must be an admin of the LinkedIn company page."},{t:"During the install you sign in to LinkedIn once."}]}},
+{t:"LinkedIn company page name in LinkedIn",v:"LINKEDIN_COMPANY_PAGE_NAME",req:1,
+ why:["So Claude picks the company page, not your personal profile."],without:["Claude cannot confirm the right page."],
+ form:function(){return[{t:"Open your company page on LinkedIn."},{t:"Copy the page name from the top of the page."},{t:"Click the box below this card. Paste it."}]}},
+{t:"Gmail newsletter intake in Google",v:"GMAIL_INTAKE",req:1,fixed:"YES",
+ why:["Newsletters you label loom-queue become source cards.","The app needs this to find fresh sources."],without:["Sources come only from the launch pack, websites and feeds."],
+ form:function(){return[{t:"Nothing to enter here. This is already set to YES."},{t:"Have the Gmail account that receives your newsletters ready."},{t:"During the install you sign in to Google once. Claude then sets up the newsletter reader for you."}]}},
+{sec:"C. Extras. The app runs without these.",t:"Resend API key in Supabase",v:"RESEND_API_KEY",secret:1,
  why:["Turns on alert emails, such as a low review queue.","Resend's test sender delivers only to your Resend account email, so that email must equal the app login email."],
  without:["No alert emails. Everything else works. Leave the box empty to turn alerts off."],
  link:["Open Resend API keys","https://resend.com/api-keys"],
@@ -226,15 +237,6 @@ var F=[
   {l:"Permission. Choose this option.",p:"Sending access"},
   {t:"Click Add. Copy the key. It starts with re_ and is shown once. Paste it into the box below."}]}
  ,ok:function(x){return /^re_/.test(x)||"Should start with re_."}},
-{t:"Gmail newsletter intake",v:"GMAIL_INTAKE",yn:1,
- why:["Newsletters you label loom-queue become source cards."],without:["Sources come only from the launch pack, websites and feeds."],
- form:function(){return[{t:"Choose YES or NO below."},{t:"If YES: during setup you do one Google sign-in. Claude fills in the script values itself."}]}},
-{t:"LinkedIn company page connection",v:"LINKEDIN_CONNECT",yn:1,
- why:["Turns on posting to the company page. Needs the Zernio key."],without:["No LinkedIn posting."],
- form:function(){return[{t:"Choose YES or NO below."},{t:"If YES: during setup you do one LinkedIn sign-in. You must be an admin of the company page."}]}},
-{t:"LinkedIn company page name",v:"LINKEDIN_COMPANY_PAGE_NAME",
- why:["So Claude picks the page, not your personal profile."],without:["Claude cannot confirm the right page."],
- form:function(){return[{t:"Open your company page on LinkedIn."},{t:"Copy the page name from the top of the page."},{t:"Click the box below this card. Paste it."}]}},
 {t:"GitHub Actions spending cap",v:"GITHUB_BUDGET_CAP_SET",yn:1,
  why:["Stops any surprise charge from the worker."],without:["Unlimited Actions spend is possible."],
  link:["Open GitHub budgets","https://github.com/settings/billing/budgets"],
@@ -278,7 +280,7 @@ function renderForm(f,box){
 F.forEach(function(f){
   if(f.sec)root.appendChild(el("h2",{},[f.sec]));
   var card=el("div",{className:"card"});
-  card.appendChild(el("span",{className:"tag"},[f.req?"Required":"Optional"]));
+  card.appendChild(el("span",{className:"tag"},[f.req?"Required":"Extra"]));
   var h=el("h3",{},[f.t+" "]);h.appendChild(el("span",{className:"var"},[f.v]));card.appendChild(h);
   card.appendChild(el("b",{},["Why"]));card.appendChild(ul(f.why));
   card.appendChild(el("b",{},["Without it"]));card.appendChild(ul(f.without));
@@ -286,8 +288,9 @@ F.forEach(function(f){
   card.appendChild(el("b",{},["Steps"]));
   var box=el("div");card.appendChild(box);
   var row=el("div",{className:"row"}),inp;
-  if(f.yn){inp=el("select");["","YES","NO"].forEach(function(o){inp.appendChild(el("option",{value:o},[o||"Choose…"]))})}
-  else{inp=el("input",{type:f.secret?"password":(f.type||"text"),autocomplete:"off",spellcheck:false,placeholder:f.req?"Required":"Optional"});inp.setAttribute("data-lpignore","true")}
+  if(f.fixed){inp=el("input",{type:"hidden"});inp.value=f.fixed}
+  else if(f.yn){inp=el("select");["","YES","NO"].forEach(function(o){inp.appendChild(el("option",{value:o},[o||"Choose…"]))})}
+  else{inp=el("input",{type:f.secret?"password":(f.type||"text"),autocomplete:"off",spellcheck:false,placeholder:f.req?"Required":"Extra. Leave empty to skip."});inp.setAttribute("data-lpignore","true")}
   row.appendChild(inp);
   if(f.secret){var sh=el("button",{type:"button"},["Show"]);sh.onclick=function(){inp.type=inp.type==="password"?"text":"password";sh.textContent=inp.type==="password"?"Show":"Hide"};row.appendChild(sh)}
   card.appendChild(row);var m=el("div",{className:"msg"});card.appendChild(m);root.appendChild(card);
@@ -299,9 +302,10 @@ F.forEach(function(f){
     m.className="msg ok";m.textContent="Looks right.";inp.className="ok";return true};
   inp.oninput=inp.onchange=function(){touched=true;if(f.norm){var n=f.norm(inp.value.trim());if(n!==inp.value.trim())inp.value=n}els[f.v].chk();refresh()};
 });
+function updateProg(){var n=0,t=0;F.forEach(function(f){if(!f.req)return;t++;var x=V(f.v);if(x&&(!f.ok||f.ok(x)===true))n++});document.getElementById("ptxt").textContent=n+" of "+t+" required items done"+(n===t?". Ready to save.":"");document.getElementById("pfill").style.width=(t?Math.round(100*n/t):0)+"%"}
 function refresh(){
   F.forEach(function(f){if(f.auto){var e=els[f.v],nv=f.auto();if(nv&&(!e.inp.value||e.inp.value===e.autoVal)){e.inp.value=nv;e.autoVal=nv;e.chk()}}});
-  F.forEach(function(f){renderForm(f,els[f.v].box)})}
+  F.forEach(function(f){renderForm(f,els[f.v].box)});updateProg()}
 refresh();
 function build(){
   var L=["INSIGHT FORGE KEYS. Made on "+new Date().toISOString().slice(0,10)+". Keep private. Never commit, sync or email.",""];
