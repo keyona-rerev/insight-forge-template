@@ -33,6 +33,10 @@
     {
      "kind": "Added",
      "text": "Newsletter intake: a Gmail label script (loom-queue) is now an install step, with a test at the health check. Before this, no installed app could receive newsletters."
+    },
+    {
+     "kind": "Added",
+     "text": "Daily publish sweep job (publish-approved-sweep-daily). Prismm had it; new installs did not."
     }
    ],
    "upgrade_steps": []

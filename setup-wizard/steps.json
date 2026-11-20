@@ -783,7 +783,7 @@
     }
    ],
    "checkbox_label": "The SQL ran and I replaced the key",
-   "verify_hint": "Run: select key, value from public.automation_config; The URL row shows your URL. The anon key row is not empty.",
+   "verify_hint": "Run: select key, value from public.automation_config; The URL row shows your URL. The anon key row is not empty. Then run: select jobname from cron.job order by 1; It lists 4 jobs: check-approved-queue-daily, fire-due-schedules-daily, publish-approved-sweep-daily and scan-newsletter-health-weekly.",
    "links": [
     {
      "label": "Open the Supabase SQL Editor",

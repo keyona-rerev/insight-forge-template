@@ -329,45 +329,55 @@ serve(async (req) => {
       .from("automation_config").select("value").eq("key", "cron_fire_secret").maybeSingle();
     const expectedCron = cronCfg?.value ?? "";
     if (expectedCron !== "" && cronSecret === expectedCron) {
-      if (body?.sweep !== true || !body?.user_id) {
-        return json({ error: "cron sweep requires {sweep:true, user_id}" }, 400);
+      if (body?.sweep !== true) {
+        return json({ error: "cron sweep requires {sweep:true}" }, 400);
       }
-      // Park stale claims instead of auto-retrying them: a 'scheduling' row
-      // older than 10 minutes means the claiming invocation died between the
-      // claim and the final write. It may have crashed AFTER the provider
-      // accepted the post (external id never recorded), so re-publishing
-      // could duplicate a live post. Zernio's post schema has no idempotency
-      // key, so the safe move is needs_attention + reconcile.
-      const staleIso = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-      const { data: parked } = await svc
-        .from("drafts")
-        .update({
-          publish_status: "needs_attention",
-          publish_error:
-            "Recovered stale scheduling claim: the publish run was interrupted after claiming this draft. A provider post may or may not have been created - reconcile with Zernio before retrying.",
-        })
-        .eq("user_id", body.user_id)
-        .eq("publish_status", "scheduling")
-        .is("external_post_id", null)
-        .lt("updated_at", staleIso)
-        .select("id");
+      // One install has one login. With no user_id the sweep covers every
+      // profile, so the install needs no per-user value in its cron job.
+      let sweepUserIds: string[] = body?.user_id ? [String(body.user_id)] : [];
+      if (sweepUserIds.length === 0) {
+        const { data: allProfiles, error: profErr } = await svc.from("profiles").select("user_id");
+        if (profErr) return json({ error: "sweep profile read failed: " + profErr.message }, 500);
+        sweepUserIds = (allProfiles ?? []).map((p: { user_id: string }) => p.user_id);
+      }
       const results = [];
-      if (parked?.length) {
-        results.push(...parked.map((d) => ({ draftId: d.id, ok: false, parkedStaleClaim: true })));
-      }
+      for (const sweepUserId of sweepUserIds) {
+        // Park stale claims instead of auto-retrying them: a 'scheduling' row
+        // older than 10 minutes means the claiming invocation died between the
+        // claim and the final write. It may have crashed AFTER the provider
+        // accepted the post (external id never recorded), so re-publishing
+        // could duplicate a live post. Zernio's post schema has no idempotency
+        // key, so the safe move is needs_attention + reconcile.
+        const staleIso = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const { data: parked } = await svc
+          .from("drafts")
+          .update({
+            publish_status: "needs_attention",
+            publish_error:
+              "Recovered stale scheduling claim: the publish run was interrupted after claiming this draft. A provider post may or may not have been created - reconcile with Zernio before retrying.",
+          })
+          .eq("user_id", sweepUserId)
+          .eq("publish_status", "scheduling")
+          .is("external_post_id", null)
+          .lt("updated_at", staleIso)
+          .select("id");
+        if (parked?.length) {
+          results.push(...parked.map((d) => ({ draftId: d.id, ok: false, parkedStaleClaim: true })));
+        }
 
-      const { data: candidates, error: candErr } = await svc
-        .from("drafts")
-        .select("id")
-        .eq("user_id", body.user_id)
-        .eq("approval_status", "approved")
-        .is("publish_status", null)
-        .order("scheduled_for", { ascending: true })
-        .limit(10);
-      if (candErr) return json({ error: "sweep fetch failed: " + candErr.message }, 500);
-      for (const c of candidates ?? []) {
-        const res = await scheduleDraft(svc, c.id, body.user_id);
-        results.push({ draftId: c.id, httpStatus: res.status, body: await res.json() });
+        const { data: candidates, error: candErr } = await svc
+          .from("drafts")
+          .select("id")
+          .eq("user_id", sweepUserId)
+          .eq("approval_status", "approved")
+          .is("publish_status", null)
+          .order("scheduled_for", { ascending: true })
+          .limit(10);
+        if (candErr) return json({ error: "sweep fetch failed: " + candErr.message }, 500);
+        for (const c of candidates ?? []) {
+          const res = await scheduleDraft(svc, c.id, sweepUserId);
+          results.push({ draftId: c.id, httpStatus: res.status, body: await res.json() });
+        }
       }
       return json({ ok: true, processed: results.length, results });
     }
