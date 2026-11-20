@@ -32,10 +32,12 @@ const json = (body: unknown, status = 200) =>
 // Zernio saves the member's PERSONAL LinkedIn profile on a plain connect.
 // This switches an already-connected account to company-page (organization)
 // posting, or back to personal, without a second sign-in.
-// PUT /v1/accounts/{accountId}/linkedin-organization  { accountType }
+// PUT /v1/accounts/{accountId}/linkedin-organization  { accountType, selectedOrganization }
+// Zernio requires selectedOrganization when accountType is "organization".
 async function setLinkedInAccountType(
   accountId: string,
   accountType: "personal" | "organization",
+  selectedOrganization?: Record<string, unknown>,
 ): Promise<{ accountType?: string; accountName?: string }> {
   const res = await fetch(
     `https://zernio.com/api/v1/accounts/${encodeURIComponent(accountId)}/linkedin-organization`,
@@ -45,7 +47,11 @@ async function setLinkedInAccountType(
         Authorization: `Bearer ${Deno.env.get("ZERNIO_API_KEY") ?? ""}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ accountType }),
+      body: JSON.stringify(
+        accountType === "organization" && selectedOrganization
+          ? { accountType, selectedOrganization }
+          : { accountType },
+      ),
     },
   );
   const text = await res.text();
@@ -53,6 +59,40 @@ async function setLinkedInAccountType(
   try { body = text ? JSON.parse(text) : null; } catch { body = text; }
   if (!res.ok) throw new Error(body?.error || body?.message || text || `HTTP ${res.status}`);
   return body ?? {};
+}
+
+// Company pages the connected LinkedIn user can post as.
+// GET /v1/accounts/{accountId}/linkedin-organizations -> { organizations: [{ id, name, vanityName, localizedName }] }
+async function listLinkedInOrganizations(accountId: string): Promise<any[]> {
+  const res = await fetch(
+    `https://zernio.com/api/v1/accounts/${encodeURIComponent(accountId)}/linkedin-organizations`,
+    { headers: { Authorization: `Bearer ${Deno.env.get("ZERNIO_API_KEY") ?? ""}` } },
+  );
+  const text = await res.text();
+  let body: any = null;
+  try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+  if (!res.ok) throw new Error(body?.error || body?.message || text || `HTTP ${res.status}`);
+  return Array.isArray(body?.organizations) ? body.organizations : [];
+}
+
+const orgName = (o: any) => o?.localizedName || o?.name || o?.vanityName || String(o?.id ?? "");
+
+// Switch to a company page. One page -> use it. Several pages -> use the one
+// matching organizationId, else report needsChoice with the list.
+async function switchToCompany(
+  accountId: string,
+  organizationId?: string,
+): Promise<{ accountName?: string; accountType?: string; needsChoice: boolean; organizations: any[] }> {
+  const organizations = await listLinkedInOrganizations(accountId);
+  if (!organizations.length) {
+    throw new Error("LinkedIn shows no company pages for this user. The user must be an admin of the company page.");
+  }
+  const chosen = organizationId
+    ? organizations.find((o) => String(o.id) === String(organizationId))
+    : organizations.length === 1 ? organizations[0] : null;
+  if (!chosen) return { needsChoice: true, organizations };
+  const r = await setLinkedInAccountType(accountId, "organization", chosen);
+  return { ...r, accountName: r.accountName ?? orgName(chosen), needsChoice: false, organizations };
 }
 
 serve(async (req) => {
@@ -73,7 +113,7 @@ serve(async (req) => {
     if (authError || !user) return json({ error: "Invalid or expired token" }, 401);
     const userId = user.id;
 
-    const { action, redirectUrl, platform, accountType } = await req.json().catch(() => ({ action: "status" } as any));
+    const { action, redirectUrl, platform, accountType, organizationId } = await req.json().catch(() => ({ action: "status" } as any));
     const PLATFORM = platform ?? "linkedin";
     const publisher = getPublisher();
     const provider = publisher.name;
@@ -107,8 +147,14 @@ serve(async (req) => {
       let switchedName: string | null = null;
       if (PLATFORM === "linkedin") {
         try {
-          const r = await setLinkedInAccountType(acct.accountId, "organization");
-          switchedName = r.accountName ?? null;
+          const r = await switchToCompany(acct.accountId);
+          if (r.needsChoice) {
+            warning = "Connected to your personal LinkedIn profile. You have more than one company page: " +
+              r.organizations.map(orgName).join(", ") +
+              ". Tell Claude which page to use.";
+          } else {
+            switchedName = r.accountName ?? null;
+          }
         } catch (e) {
           warning = "Connected to your personal LinkedIn profile. LinkedIn would not switch it to a company page: " +
             (e instanceof Error ? e.message : "unknown error") +
@@ -149,7 +195,13 @@ serve(async (req) => {
       if (!conn?.external_account_id) return json({ error: "Connect LinkedIn first." });
       const target = accountType === "personal" ? "personal" : "organization";
       try {
-        const r = await setLinkedInAccountType(conn.external_account_id, target);
+        const r = target === "organization"
+          ? await switchToCompany(conn.external_account_id, organizationId)
+          : await setLinkedInAccountType(conn.external_account_id, "personal");
+        if ((r as any).needsChoice) {
+          const list = ((r as any).organizations as any[]).map((o) => `${orgName(o)} (id ${o.id})`).join("; ");
+          return json({ error: `More than one company page: ${list}. Tell Claude which page to use.` });
+        }
         const { data: updated, error: upErr } = await supabase
           .from("social_connections")
           .update({ account_label: r.accountName ?? conn.account_label })
