@@ -4,9 +4,10 @@ import { getPublisher } from "../_shared/publisher/index.ts";
 import { getDraftImageUrl } from "../_shared/get-draft-image-url.ts";
 import { maxCharsFor, requiresMedia, platformLabel } from "../_shared/publisher/platform-rules.ts";
 
-// Publishes an approved draft immediately (or within ~60 seconds) by scheduling
-// it at the current time. Unlike publish-to-zernio, this bypasses the slot
-// resolver -- it's a manual "send now" action.
+// Publishes an approved draft immediately through the provider's synchronous
+// immediate-publish mode (Zernio publishNow: true) -- the post goes out inside
+// the request, not at a future slot. Unlike publish-to-zernio, this bypasses
+// the slot resolver -- it's a manual "send now" action.
 //
 // Platform-aware: draft.platform drives the char limit, the media
 // requirement, and which social_connections row is used -- same rules as
@@ -96,20 +97,34 @@ serve(async (req) => {
     // duplicate content (HTTP 409 within 24h), so move the EXISTING post to
     // now + 60s instead.
     if (draft.external_post_id && draft.publish_status === "scheduled") {
-      const moveTo = new Date(Date.now() + 60_000).toISOString();
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
       try {
-        await publisher.updateSchedule(draft.external_post_id, moveTo, tz);
+        await publisher.publishScheduledNow(draft.external_post_id);
+        const publishedAt = new Date().toISOString();
         await supabase.from("drafts").update({
           publish_status: "published_now",
           publish_error: null,
-          scheduled_for: moveTo,
+          scheduled_for: publishedAt,
         }).eq("id", draft.id);
-        return json({ ok: true, status: "published_now", externalPostId: draft.external_post_id, scheduledFor: moveTo, moved: true });
+        return json({ ok: true, status: "published_now", externalPostId: draft.external_post_id, scheduledFor: publishedAt, moved: true });
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Provider reschedule failed";
-        console.error("post-now: updateSchedule failed", draft.id, msg);
-        return json({ ok: false, status: "failed", error: `Could not move the scheduled post to now: ${msg}` }, 502);
+        const msg = e instanceof Error ? e.message : "Provider immediate-publish failed";
+        console.error("post-now: publishScheduledNow failed", draft.id, msg);
+        // The provider no longer having the post (404) means the stored
+        // reference is stale -- typically the connected account/workspace
+        // changed and the old queue went with it. Do NOT clear
+        // external_post_id or auto-republish here: the connected audience
+        // may have changed, and silently creating a fresh post could publish
+        // to the wrong destination. Mark needs_attention, keep the old
+        // provider id as evidence, and let a person verify the connected
+        // account before the next attempt.
+        if (/404|not found/i.test(msg)) {
+          await supabase.from("drafts").update({
+            publish_status: "needs_attention",
+            publish_error: "The connected account no longer has the scheduled copy of this post (stale reference after an account change). The original provider id is preserved. Verify the connected account in Settings, then approve or post again.",
+          }).eq("id", draft.id);
+          return json({ ok: false, status: "needs_attention", error: "The scheduled copy no longer exists at the connected account. This draft is marked Needs attention; verify the connected account in Settings, then try again." }, 502);
+        }
+        return json({ ok: false, status: "failed", error: `Could not publish the scheduled post now: ${msg}` }, 502);
       }
     }
 
@@ -140,18 +155,18 @@ serve(async (req) => {
       );
     }
 
-    // Schedule 60 seconds from now so the provider has time to process it.
-    // This is effectively "now" from the user's perspective.
-    const scheduledFor = new Date(Date.now() + 60_000).toISOString();
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    // Immediate publish: the provider publishes synchronously inside this
+    // request (Zernio publishNow: true). The draft id doubles as the
+    // provider idempotency key so a retried request cannot double-post.
+    const publishedAt = new Date().toISOString();
 
     try {
       const result = await publisher.publish({
         text,
         platform,
         accountId: conn.external_account_id,
-        scheduledFor,
-        timezone,
+        publishNow: true,
+        idempotencyKey: draft.id,
         imageUrl,
       });
 
@@ -161,7 +176,7 @@ serve(async (req) => {
           external_post_id: result.externalPostId,
           publish_status: "published_now",
           publish_error: null,
-          scheduled_for: scheduledFor,
+          scheduled_for: publishedAt,
         })
         .eq("id", draft.id);
 
@@ -169,7 +184,8 @@ serve(async (req) => {
         ok: true,
         status: "published_now",
         externalPostId: result.externalPostId,
-        scheduledFor,
+        scheduledFor: publishedAt,
+        platformPostUrl: result.platformPostUrl ?? null,
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Provider publish failed";
