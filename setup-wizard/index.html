@@ -49,7 +49,8 @@ ul.pts{margin:10px 0;padding-left:1.25em}ul.pts li{margin:4px 0}ul.pts.hint{padd
 @media(max-width:500px){.card{padding:16px}.costs{font-size:.84rem}.costs th,.costs td{padding:7px 5px}.copy{padding-right:12px;padding-top:45px}.copy button{top:7px;right:7px}main{padding-left:10px;padding-right:10px}}
 .snapshot{border:2px solid #2563eb;border-radius:10px;padding:14px 16px;margin:14px 0;background:rgba(37,99,235,.06)}.snapshot h3{margin:0 0 8px}.snapshot dl{margin:0;display:grid;grid-template-columns:max-content 1fr;gap:6px 14px}.snapshot dt{font-weight:600}.snapshot dd{margin:0}@media(max-width:560px){.snapshot dl{grid-template-columns:1fr}.snapshot dd{margin-bottom:6px}}
 .finishline{margin:18px 0;padding:16px;background:#eef5f3;border:1px solid #9bbdb6;border-radius:8px}.finishline h3{margin:0 0 12px}.fl-track{display:flex;gap:10px;flex-wrap:wrap}.fl-step{flex:1 1 150px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px}.fl-step strong{display:block;margin:8px 0 4px;color:#14213d}.fl-step p{margin:0;font-size:.9rem;color:#374151}.fl-ico{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#075e58;color:#fff;font-weight:700;font-size:.9rem}.fl-flag{border:2px solid #075e58;background:#e6f2f0}.fl-flag .fl-flag-ico{background:transparent;font-size:1.3rem}
-.time{margin:4px 0 12px;color:#075e58;font-size:.95rem}</style>
+.time{margin:4px 0 12px;color:#075e58;font-size:.95rem}.refimg{margin:8px 0 2px}.refimg summary{cursor:pointer;display:inline-block;font-size:.85rem;font-weight:700;color:#0b5d4a;background:#eef6f2;border:1px solid #9cc9b4;border-radius:8px;padding:4px 10px;box-shadow:0 0 8px rgba(11,93,74,.35);list-style:none}.refimg summary::-webkit-details-marker{display:none}.refimg[open] summary{box-shadow:none}.refimg img{display:block;max-width:100%;margin-top:8px;border:1px solid #cfc8b4;border-radius:8px}.refimg .cap{font-size:.8rem;color:#4b5563;margin:4px 0 0}
+</style>
 </head>
 <body>
 <main>
@@ -191,7 +192,7 @@ ul.pts{margin:10px 0;padding-left:1.25em}ul.pts li{margin:4px 0}ul.pts.hint{padd
     if(s.table){h+='<table class="costs"><thead><tr>'+s.table.headers.map(function(t){return '<th scope="col">'+esc(t)+'</th>';}).join('')+'</tr></thead><tbody>'+s.table.rows.map(function(r){return '<tr>'+r.map(function(t){return '<td>'+esc(t)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table>';}
     if(s.terminal_help){h+=terminalHelp();}
     if(s.links){h+='<ul class="links">'+s.links.map(function(l){var u=sub(l.url,false);if(/<[a-z_]+>/.test(u))return '<li>'+esc(l.label)+' <em>(fill in the earlier values first)</em></li>';return '<li><a target="_blank" rel="noopener noreferrer" '+(l.download?'download="prepare-app.mjs" ':'')+'href="'+esc(u)+'">'+esc(l.label)+'</a></li>';}).join('')+'</ul>';}
-    if(s.image){h+='<img class="guide" src="'+esc(s.image.src)+'" alt="'+esc(s.image.alt)+'"><p class="caption">'+esc(s.image.caption)+'</p>';}
+    [].concat(s.images||[],s.image||[]).forEach(function(im){h+='<details class="refimg"><summary>Show me a picture</summary><img class="guide" src="'+esc(im.src)+'" alt="'+esc(im.alt)+'"><p class="caption">'+esc(im.caption)+'</p></details>';});
     (s.collect||[]).forEach(function(k){
       var d=def(k);
       h+='<div class="field"><label for="f_'+k+'">'+esc(d.label||k)+'</label>'+(d.help?'<small>'+esc(d.help)+'</small>':'')+

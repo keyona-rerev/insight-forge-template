@@ -385,7 +385,7 @@
    "time": "About 3 min, plus 1 min wait for the import"
   },
   {
-   "title": "Create your Supabase project",
+   "title": "Create your Supabase project", "images": [{"src": "img/neworg.png", "alt": "The Supabase Create a new organization page. Red boxes mark the Name box and the Plan box.", "caption": "The Name and Plan boxes. Plan must say Free."}, {"src": "img/limit.png", "alt": "The Supabase Create a new project page with the message Unable to create project under Free Plan organization circled in red.", "caption": "The project limit message. If you see it, stop. Do not pay."}],
    "instructions": "Open Supabase on this computer and check the client-owned account. If needed, create its account and complete email/2FA verification there. Create a new project named for {{business_name}}. Choose the agreed organization and region; do not upgrade a plan without the owner's approval. Save the database password in the owner-approved password manager, not here.\n\nWhen the project is ready, copy its full dashboard address below, for example https://supabase.com/dashboard/project/abcdefghijklmnopqrst. We extract the project reference. Existing projects with data are not a clean-install target: do not run the next database steps on them.\n\nFree projects can pause after a week without activity. Do not rely on a posting schedule as a guarantee against pausing.",
    "collect": [
     "supabase_dashboard_url"
@@ -439,7 +439,7 @@
    "time": "About 5 min, or 12 min if the Claude CLI is not installed"
   },
   {
-   "title": "GitHub token: make it, then store it right away",
+   "title": "GitHub token: make it, then store it right away", "images": [{"src": "img/tokname.png", "alt": "The GitHub new token form. Red boxes mark Token name, Description, Resource owner and Expiration.", "caption": "The first four boxes of the token form. The picture hides the owner name."}, {"src": "img/tokrepo.png", "alt": "The GitHub token form. A red box marks the Only select repositories option.", "caption": "The Only select repositories option."}, {"src": "img/tokperm.png", "alt": "The GitHub token form. A red box marks the Add permissions button.", "caption": "The Add permissions button."}],
    "instructions": "The connect button in a later step uses this token to store the worker's secrets for you. You make it in the client's GitHub account and paste it into the worker repo only.\n\n1. Open the GitHub token page below. Sign in as {{github_username}}.\n2. Name: insightforge-setup. Expiration: 1 year.\n3. Repository access: Only select repositories. Choose {{worker_repo}}.\n4. Permissions: Contents, Read and write. Secrets, Read and write. Actions, Read-only. Nothing else.\n5. Press Generate token. Keep the token on screen.\n6. Open the worker secrets page below. Press New repository secret.\n7. Name: SETUP_GH_TOKEN. Paste the token as the value. Press Add secret.\n\nDo not widen the permissions to get past a failure.",
    "links": [
     {
@@ -463,7 +463,7 @@
    "time": "About 3 min"
   },
   {
-   "title": "Supabase token: make it, then store it right away",
+   "title": "Supabase token: make it, then store it right away", "images": [{"src": "img/tokgen.png", "alt": "The Supabase Access Tokens page. A red box marks the green Generate new token button.", "caption": "The green Generate new token button."}],
    "instructions": "The connect button also needs a Supabase account token. You make it in the client's Supabase account and paste it into the worker repo only.\n\n1. Open the Supabase token page below. Sign in as the client.\n2. Press Generate new token. Name: insightforge-setup.\n3. Keep the token on screen.\n4. Open the worker secrets page below. Press New repository secret.\n5. Name: SUPABASE_ACCESS_TOKEN. Paste the token as the value. Press Add secret.",
    "links": [
     {
@@ -487,7 +487,7 @@
    "time": "About 2 min"
   },
   {
-   "title": "Set the GitHub budget cap",
+   "title": "Set the GitHub budget cap", "images": [{"src": "img/budget.png", "alt": "The GitHub Budgets and alerts page. A red box marks the green New budget button.", "caption": "The green New budget button."}],
    "instructions": "Do this before any worker run. It is a spending guard, not a guarantee against every possible charge.\n\n1. Open the budgets page below. Sign in as {{github_username}}.\n2. Create a budget for Actions. Amount: $0.\n3. Turn on Stop usage when budget limit is reached.\n4. Save it. Check the scope it shows.\n\nThe included allowance depends on the account and its other repositories. Do not add a card, upgrade or accept paid usage without owner approval.",
    "copy": [
     {
@@ -507,7 +507,7 @@
    "time": "About 2 min"
   },
   {
-   "title": "Email and publishing keys: make them, then store them right away",
+   "title": "Email and publishing keys: make them, then store them right away", "images": [{"src": "img/zkeys.png", "alt": "The Zernio API Keys page. A red box marks the Create key button.", "caption": "The Create key button."}, {"src": "img/resend.png", "alt": "The Resend Add API Key window. Red boxes mark the Name box and the Permission box.", "caption": "The Name and Permission boxes. Change Permission to Sending access."}],
    "instructions": "The app sends one email: a low-queue alert to the app login. It sends through Resend's test sender. You need no domain and no DNS.\n\nResend:\n1. Open Resend and sign in. Create the account with the same email as the app login: {{login_email}}.\n2. Why: Resend's test sender delivers only to the email on the Resend account. The app has one login, so this works.\n3. Open the Resend API keys page. Create a key named insightforge. Permission: Sending access.\n4. Open the Supabase secrets page below. Add a secret named RESEND_API_KEY. Paste the key. Save.\n5. The first alert can land in spam. Mark it as not spam once.\n6. To skip alerts, skip the Resend steps. Everything else works.\n\nZernio:\n7. Open Zernio and sign in with the approved account. Open the API keys tab. Create a key named insightforge.\n8. On the same Supabase secrets page, add a secret named ZERNIO_API_KEY. Paste the key. Save.\n9. Zernio connects LinkedIn later, in the app. It does not post anything yet.\n\nNever paste a key into this wizard or Claude chat.",
    "collect": [
     "login_email"
@@ -546,7 +546,7 @@
    "time": "About 6 min, or 12 min if you need new Resend and Zernio accounts"
   },
   {
-   "title": "Add the build settings in GitHub",
+   "title": "Add the build settings in GitHub", "images": [{"src": "img/pubkey.png", "alt": "The Supabase API Keys page. A red box marks the copy button next to the publishable key.", "caption": "The copy button for the publishable key. Never copy a secret key."}],
    "instructions": "The website build reads three secrets and one variable from the app repository.\n\n1. Open the app secrets page below. Press New repository secret three times, once per row in the copy boxes.\n2. For the publishable key, open the Supabase API keys page below. Copy the publishable key. Never use a secret or service-role key.\n3. Open the app variables page below. Press New repository variable. Add VITE_VISUALS_ENABLED with the value true. This turns on the image controls.",
    "copy": [
     {
@@ -586,7 +586,7 @@
    "time": "About 5 min"
   },
   {
-   "title": "Create your one login",
+   "title": "Create your one login", "images": [{"src": "img/adduser.png", "alt": "The Supabase Create a new user window. A red box marks the Auto confirm user checkbox.", "caption": "The Auto confirm user box. Keep it ticked."}, {"src": "img/signup.png", "alt": "The Supabase Sign In and Providers page. A red box marks the Allow new users to sign up switch.", "caption": "The Allow new users to sign up switch. Turn it OFF."}, {"src": "img/urlcfg.png", "alt": "The Supabase URL Configuration page. A red box marks the Site URL box.", "caption": "The Site URL box. The picture hides the value."}],
    "instructions": "The app has exactly one login. You create it in Supabase now. The app itself goes live later.\n\n1. Open Supabase Users below. Press Add user, then Create new user.\n2. Email: {{login_email}}. Set the password in Supabase. Turn on Auto Confirm User.\n3. Open Supabase Sign In / Providers below. Turn off Allow new users to sign up. Save.\n4. Open Supabase URL Configuration below. Set Site URL to the app address in the copy box. Save.\n\nKeep the password outside this wizard. This login is separate from your GitHub and Claude logins.",
    "collect": [
     "login_email"
@@ -715,7 +715,7 @@
    "time": "About 3 min of yours. About 10 min if Git or Node must be installed. About 5 min while it builds"
   },
   {
-   "title": "Turn on database extensions",
+   "title": "Turn on database extensions", "images": [{"src": "img/extensions.png", "alt": "The Supabase Database Extensions page. Red boxes mark the search box and the pg_net switch.", "caption": "The search box and the switch for an extension."}],
    "instructions": "In the new Supabase project, open Database, then Extensions. Search pg_cron and enable it; then search pg_net and enable it. These let scheduled database jobs call server functions. Check the project name before enabling anything. If a later command reports cron or net missing, return here.",
    "checkbox_label": "Both extensions are on",
    "verify_hint": "Both show as enabled.",
