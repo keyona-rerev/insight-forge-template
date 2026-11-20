@@ -68,6 +68,20 @@ body{line-height:1.7}
 .card{padding:22px 24px;margin:16px 0}
 ol.form>li{margin:12px 0;padding:10px 14px 10px 40px}
 ol.form>li::before{top:11px}
+.dock{position:relative;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:14px 0;display:flex;flex-direction:column;gap:8px;align-items:stretch}
+.dk-lbl{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#4b5563}
+.dk-cnt{font-size:.9rem;color:#4b5563}
+#save{font-weight:700;border:2px solid transparent;border-radius:10px;padding:12px 14px;transition:background-color .4s,color .4s,box-shadow .4s;white-space:normal}
+.dock.ready #save{box-shadow:0 0 0 4px rgba(15,118,110,.18),0 0 18px rgba(15,118,110,.45)}
+.dock.pop #save{animation:dkpop .9s ease-out 2}
+@keyframes dkpop{0%{transform:scale(1)}30%{transform:scale(1.08)}60%{transform:scale(.98)}100%{transform:scale(1)}}
+.dk-yay{font-weight:700;color:#075e58;text-align:center}
+.dock #tonext{margin-left:0;text-align:center;white-space:normal}
+.dk-fx{position:absolute;left:50%;top:50%;width:0;height:0;pointer-events:none}
+.dk-fx i{position:absolute;width:8px;height:8px;border-radius:2px;opacity:0;animation:dkfly 1.3s ease-out forwards}
+@keyframes dkfly{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--x),var(--y)) rotate(var(--r))}}
+@media (min-width:1290px){.dock{position:fixed;top:50%;transform:translateY(-50%);right:max(12px,calc((100vw - 860px)/4 - 100px));width:200px;margin:0;z-index:20;box-shadow:0 4px 18px rgba(20,33,61,.08)}}
+@media (prefers-reduced-motion:reduce){.dock.pop #save{animation:none}.dk-fx{display:none}}
 </style>
 </head>
 <body>
@@ -89,6 +103,7 @@ ol.form>li::before{top:11px}
 </ul>
 </div>
 <div class="warn" style="background:#eef6f2;border-color:#9cc9b4"><p style="margin:0 0 6px"><b>Already saved a keys file?</b> Choose it here. This page fills every box from it, so you do not type anything again.</p><p style="margin:0 0 6px"><input type="file" id="loadfile" accept=".txt,text/plain"></p><p id="loadmsg" style="margin:0"></p></div>
+<aside class="dock" id="dock" aria-label="Save your keys file"><div class="dk-lbl">Your keys file</div><div class="dk-cnt" id="dkcnt"></div><button id="save" type="button">Save keys file</button><div class="dk-yay" id="dkyay" role="status" hidden>Yay! You're ready to save your keys file.</div><span class="msg" id="status"></span><a class="btn primary" id="tonext" href="./?stage=code" hidden>Next: open Claude desktop &rarr;</a><div class="dk-fx" id="dkfx" aria-hidden="true"></div></aside>
 <div class="dots" id="dots"></div>
 <div class="nav"><button id="back" type="button">&larr; Back</button><span class="ctr" id="ctr"></span><button id="next" type="button">Next &rarr;</button></div>
 <div id="root"></div>
@@ -109,7 +124,7 @@ ol.form>li::before{top:11px}
 </ol>
 <div class="row"><button class="primary" id="dosave" type="button">Open the Save window</button><button id="cancelsave" type="button">Cancel</button></div>
 </div></div>
-<div class="bar"><div class="prog"><div class="ptxt" id="ptxt"></div><div class="track"><div id="pfill"></div></div></div><button class="primary" id="save">Save keys file</button><span class="msg" id="status"></span><a class="btn primary" id="tonext" href="./?stage=code" hidden>Next: open Claude desktop &rarr;</a></div>
+<div class="bar"><div class="prog"><div class="ptxt" id="ptxt"></div><div class="track"><div id="pfill"></div></div></div></div>
 </main>
 <script>
 (function(){
@@ -494,7 +509,7 @@ F.forEach(function(f){
   inp.onkeydown=function(e){if(e.key==="Enter"&&els[f.v].chk()&&inp.value.trim()){e.preventDefault();go(cur+1)}};
   inp.oninput=inp.onchange=function(){touched=true;if(f.norm){var n=f.norm(inp.value.trim());if(n!==inp.value.trim())inp.value=n}els[f.v].chk();refresh()};
 });
-function updateProg(){var n=0,t=0;F.forEach(function(f){if(!f.req)return;t++;var x=V(f.v);if(x&&(!f.ok||f.ok(x)===true))n++});document.getElementById("ptxt").textContent=n+" of "+t+" required items done"+(n===t?". Ready to save.":"");document.getElementById("pfill").style.width=(t?Math.round(100*n/t):0)+"%";if(typeof paint==="function"&&els[F[0].v]&&els[F[0].v].cardEl&&typeof cur!=="undefined")paint()}
+function updateProg(){var n=0,t=0;F.forEach(function(f){if(!f.req)return;t++;var x=V(f.v);if(x&&(!f.ok||f.ok(x)===true))n++});document.getElementById("ptxt").textContent=n+" of "+t+" required items done"+(n===t?". Ready to save.":"");document.getElementById("pfill").style.width=(t?Math.round(100*n/t):0)+"%";if(window.ifDock)window.ifDock(n,t);if(typeof paint==="function"&&els[F[0].v]&&els[F[0].v].cardEl&&typeof cur!=="undefined")paint()}
 function refresh(){
   F.forEach(function(f){if(f.auto){var e=els[f.v],nv=f.auto();if(nv&&(!e.inp.value||e.inp.value===e.autoVal)){e.inp.value=nv;e.autoVal=nv;e.chk()}}});
   F.forEach(function(f){renderForm(f,els[f.v].box)});updateProg()}
@@ -552,6 +567,26 @@ document.getElementById("save").onclick=function(){
   var st=document.getElementById("status"),nx=document.getElementById("tonext");
   function upd(){nx.hidden=!/saved/i.test(st.textContent||"")||/^Cancelled/.test(st.textContent||"");}
   try{new MutationObserver(upd).observe(st,{childList:true,characterData:true,subtree:true});}catch(e){}
+})();
+</script>
+<script>
+(function(){
+  var dock=document.getElementById("dock"),btn=document.getElementById("save"),cnt=document.getElementById("dkcnt"),yay=document.getElementById("dkyay"),fx=document.getElementById("dkfx"),was=null;
+  function mix(a,b,f){return Math.round(a+(b-a)*f)}
+  function burst(){fx.innerHTML="";var cols=["#0f766e","#f0b429","#3b5bdb","#e85d75","#14213d"];for(var k=0;k<18;k++){var s=document.createElement("i"),ang=(k/18)*Math.PI*2,d=70+Math.random()*50;s.style.background=cols[k%cols.length];s.style.setProperty("--x",Math.round(Math.cos(ang)*d)+"px");s.style.setProperty("--y",Math.round(Math.sin(ang)*d)+"px");s.style.setProperty("--r",Math.round(Math.random()*540)+"deg");s.style.animationDelay=(Math.random()*.15)+"s";fx.appendChild(s)}setTimeout(function(){fx.innerHTML=""},1700)}
+  window.ifDock=function(n,t){
+    var f=t?n/t:0;
+    btn.style.backgroundColor="rgb("+mix(236,15,f)+","+mix(232,118,f)+","+mix(222,110,f)+")";
+    btn.style.color=f>.55?"#fff":"#14213d";
+    btn.style.borderColor=f>=1?"#0b5d57":"rgb("+mix(217,15,f)+","+mix(212,118,f)+","+mix(199,110,f)+")";
+    cnt.textContent=n+" of "+t+" done";
+    var ready=t>0&&n===t;
+    dock.classList.toggle("ready",ready);yay.hidden=!ready;
+    if(ready&&was===false){dock.classList.remove("pop");void dock.offsetWidth;dock.classList.add("pop");burst()}
+    was=ready;
+  };
+  var m=/(\d+) of (\d+)/.exec(document.getElementById("ptxt").textContent||"");
+  window.ifDock(m?+m[1]:0,m?+m[2]:21);
 })();
 </script>
 </body>
