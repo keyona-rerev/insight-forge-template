@@ -41,6 +41,21 @@ export function resolveVisualPlatform(rowPlatform: unknown, formatPlatform?: str
   return normalizeRowPlatform(rowPlatform) ?? normalizeRowPlatform(formatPlatform) ?? DEFAULT_PLATFORM;
 }
 
+// The worker's renderer is offline and swaps ONE recorded logo URL for its
+// bundled copy. The current Visual Studio logo URL travels in the job's
+// claim context so the worker can re-bundle it when the owner changes the
+// logo (see the worker step "Sync the client logo from the claim context").
+// https only; anything else is sent as null.
+function logoUrlOf(config: unknown): string | null {
+  // deno-lint-ignore no-explicit-any
+  const u = typeof (config as any)?.logo_url === "string" ? (config as any).logo_url.trim() : "";
+  return u.startsWith("https://") ? u.slice(0, 2000) : null;
+}
+function logoUrlFromRaw(raw: unknown): string | null {
+  if (!raw) return null;
+  try { return logoUrlOf(typeof raw === "string" ? JSON.parse(raw) : raw); } catch { return null; }
+}
+
 export async function requestDraftVisual(db: Db, queueDb: QueueDb, enqueue: Enqueue, args: {
   authUserId: string; draftId: string; formatPlatform?: string | null;
 }): Promise<{ status: number; body: Record<string, unknown> }> {
@@ -73,6 +88,7 @@ export async function requestDraftVisual(db: Db, queueDb: QueueDb, enqueue: Enqu
     context: {
       draft_id: args.draftId, visual_id: visualId, preview: false,
       canvas: { w: canvasWidth, h: canvasHeight }, source_hash: sourceHash, platform,
+      logo_url: logoUrlFromRaw(profile?.visual_studio_config),
     },
     idempotencyKey: `visual:${visualId}`,
     noRotateFailed: true,
@@ -98,7 +114,7 @@ export async function requestVisualPreview(queueDb: QueueDb, enqueue: Enqueue, a
     kind: "visual-preview",
     prompt: visualUserPrompt(draft),
     system: systemPrompt,
-    context: { preview: true, canvas: { w: dims.width, h: dims.height }, platform },
+    context: { preview: true, canvas: { w: dims.width, h: dims.height }, platform, logo_url: logoUrlOf(args.config) },
   });
   return { status: 202, body: { queued: true, jobId: handle.jobId, canvas: { w: dims.width, h: dims.height } } };
 }
