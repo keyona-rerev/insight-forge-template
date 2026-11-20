@@ -935,7 +935,7 @@
    "time": "About 2 min of yours, plus 5 min while the run finishes"
   },
   {
-   "title": "Connect LinkedIn",
+   "title": "Connect LinkedIn", "images": [{"src": "img/lisettings.png", "alt": "The app Settings page, Publishing LinkedIn card. A red box marks the connected business page name. A second red box marks the Post to company page button.", "caption": "After you connect, the red boxes show what to check: the business page name, and Post to company page."}],
    "instructions": "The Zernio key is already stored. You only connect LinkedIn now. This is the only sign-in left in the install.\n\n1. Open Settings in the app below. Press Connect LinkedIn.\n2. The account owner signs in and approves the business page in LinkedIn's own flow.\n3. Check the exact name Settings shows. It must be the business page, not a personal profile.\n\nConnecting does not post anything. It does not turn on a schedule.",
    "links": [
     {
