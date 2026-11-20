@@ -4,7 +4,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 export const SOURCE_URL='https://github.com/keyona-rerev/insight-forge-template.git';
-export const SOURCE_COMMIT='63088cc899829df02ee1edec0c490d80ffe2daf3';
+export const SOURCE_COMMIT='2be0006d40fb6ec5649d91a1bf4b944f698e1782';
 const fail=m=>{throw new Error(m)};
 export function validate(owner,repo){
  if(!/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(owner||'')||owner.includes('--'))fail('Use the GitHub account name from the reviewed profile URL.');
