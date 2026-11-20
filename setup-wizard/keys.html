@@ -209,7 +209,7 @@ var F=[
  form:function(){return[{t:"Click the box below this card."},{t:"Type a new password for the app. At least 10 characters."},{t:"Write it in your password manager. You need it to sign in."}]},
  ok:function(x){return x.length>=10||"Use at least 10 characters."}},
 
-{sec:"B. Also required. These turn on publishing and newsletters.",t:"Zernio API key in Supabase",v:"ZERNIO_API_KEY",req:1,secret:1,
+{sec:"B. Also required. These turn on publishing, newsletters, alerts and spending safety.",t:"Zernio API key in Supabase",v:"ZERNIO_API_KEY",req:1,secret:1,
  why:["Turns on publishing to LinkedIn and connecting the company page."],
  without:["Drafts, review and approval still work. Nothing can publish."],
  link:["Open Zernio","https://zernio.com/dashboard"],
@@ -228,9 +228,9 @@ var F=[
 {t:"Gmail newsletter intake in Google",v:"GMAIL_INTAKE",req:1,fixed:"YES",
  why:["Newsletters you label loom-queue become source cards.","The app needs this to find fresh sources."],without:["Sources come only from the launch pack, websites and feeds."],
  form:function(){return[{t:"Nothing to enter here. This is already set to YES."},{t:"Have the Gmail account that receives your newsletters ready."},{t:"During the install you sign in to Google once. Claude then sets up the newsletter reader for you."}]}},
-{sec:"C. Extras. The app runs without these.",t:"Resend API key in Supabase",v:"RESEND_API_KEY",secret:1,
+{t:"Resend API key in Supabase",v:"RESEND_API_KEY",req:1,secret:1,
  why:["Turns on alert emails, such as a low review queue.","Resend's test sender delivers only to your Resend account email, so that email must equal the app login email."],
- without:["No alert emails. Everything else works. Leave the box empty to turn alerts off."],
+ without:["No alert emails, such as a low review queue alert."],
  link:["Open Resend API keys","https://resend.com/api-keys"],
  form:function(){var e=V("APP_LOGIN_EMAIL");return[
   e?{l:"If you have no Resend account yet, sign up with this exact email.",c:e}:need(e,"the app login email"),
@@ -239,7 +239,7 @@ var F=[
   {l:"Permission. Choose this option.",p:"Sending access"},
   {t:"Click Add. Copy the key. It starts with re_ and is shown once. Paste it into the box below."}]}
  ,ok:function(x){return /^re_/.test(x)||"Should start with re_."}},
-{t:"GitHub Actions spending cap",v:"GITHUB_BUDGET_CAP_SET",yn:1,
+{t:"GitHub Actions spending cap in GitHub",v:"GITHUB_BUDGET_CAP_SET",req:1,yn:1,
  why:["Stops any surprise charge from the worker."],without:["Unlimited Actions spend is possible."],
  link:["Open GitHub budgets","https://github.com/settings/billing/budgets"],
  form:function(){return[
@@ -248,7 +248,8 @@ var F=[
   {l:"Amount. Paste into the amount box.",c:"0"},
   {l:"Stop usage when budget limit is reached. Turn this on.",p:"ON"},
   {t:"Click Create budget. Check that the page lists Actions, $0, stop usage on."},
-  {t:"Then choose YES below."}]}}
+  {t:"Then choose YES below. This tells the page you finished the steps."}]},
+ ok:function(x){return x==="YES"||"Choose YES after you finish the steps."}}
 ];
 var root=document.getElementById("root");
 function el(tag,attrs,kids){var e=document.createElement(tag);for(var k in attrs||{})e[k]=attrs[k];(kids||[]).forEach(function(c){e.appendChild(typeof c==="string"?document.createTextNode(c):c)});return e}
@@ -282,7 +283,7 @@ function renderForm(f,box){
 F.forEach(function(f){
   if(f.sec)root.appendChild(el("h2",{},[f.sec]));
   var card=el("div",{className:"card"});
-  card.appendChild(el("span",{className:"tag"},[f.req?"Required":"Extra"]));
+  card.appendChild(el("span",{className:"tag"},["Required"]));
   var h=el("h3",{},[f.t+" "]);h.appendChild(el("span",{className:"var"},[f.v]));card.appendChild(h);
   card.appendChild(el("b",{},["Why"]));card.appendChild(ul(f.why));
   card.appendChild(el("b",{},["Without it"]));card.appendChild(ul(f.without));
@@ -291,8 +292,8 @@ F.forEach(function(f){
   var box=el("div");card.appendChild(box);
   var row=el("div",{className:"row"}),inp;
   if(f.fixed){inp=el("input",{type:"hidden"});inp.value=f.fixed}
-  else if(f.yn){inp=el("select");["","YES","NO"].forEach(function(o){inp.appendChild(el("option",{value:o},[o||"Choose…"]))})}
-  else{inp=el("input",{type:f.secret?"password":(f.type||"text"),autocomplete:"off",spellcheck:false,placeholder:f.req?"Required":"Extra. Leave empty to skip."});inp.setAttribute("data-lpignore","true")}
+  else if(f.yn){inp=el("select");["","YES"].forEach(function(o){inp.appendChild(el("option",{value:o},[o||"Choose…"]))})}
+  else{inp=el("input",{type:f.secret?"password":(f.type||"text"),autocomplete:"off",spellcheck:false,placeholder:"Required"});inp.setAttribute("data-lpignore","true")}
   row.appendChild(inp);
   if(f.secret){var sh=el("button",{type:"button"},["Show"]);sh.onclick=function(){inp.type=inp.type==="password"?"text":"password";sh.textContent=inp.type==="password"?"Show":"Hide"};row.appendChild(sh)}
   card.appendChild(row);var m=el("div",{className:"msg"});card.appendChild(m);root.appendChild(card);
