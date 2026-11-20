@@ -33,6 +33,13 @@ select{font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:
 .chip b{margin-right:4px}
 .chip.Added b{color:#166534}.chip.Fixed b{color:#b91c1c}.chip.Changed b{color:#1d4ed8}
 details.steps{margin-top:8px}
+details.rc{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+details.rc summary{cursor:pointer;font-weight:600}
+.rc table{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:6px}
+.rc td{padding:6px;border-bottom:1px solid var(--line);vertical-align:top}
+.rc td:first-child{font-weight:600;width:30%}
+.res{display:inline-block;font-weight:700;font-size:.75rem;padding:2px 8px;border-radius:99px;white-space:nowrap}
+.res.pass{background:#dcfce7;color:#166534}.res.fail{background:#fee2e2;color:#b91c1c}.res.partial,.res.untested{background:#fef3c7;color:#92400e}
 details.steps summary{cursor:pointer;font-weight:600}
 .step{margin:12px 0}
 .step .t{font-weight:600}
@@ -80,6 +87,10 @@ button{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid var(--in
     if((v.upgrade_steps||[]).length){
       h+='<details class="steps" open><summary>Steps for this version ('+v.upgrade_steps.length+')</summary>'+v.upgrade_steps.map(function(s,i){
         return '<div class="step"><div class="t">'+(i+1)+'. '+esc(s.title)+'</div><div>'+esc(s.text)+'</div>'+(s.copy?'<div class="copy">'+esc(sub(s.copy))+'<button data-c="'+encodeURIComponent(sub(s.copy))+'">Copy</button></div>':'')+'</div>';}).join('')+'</details>';
+    }
+    if(v.report_card){var rc=v.report_card;
+      h+='<details class="rc"><summary>Test report card: '+esc(rc.summary)+'</summary><div class="date">Tested '+esc(rc.tested)+' on '+esc(rc.environment)+'</div><table>'+(rc.results||[]).map(function(r){
+        return '<tr><td>'+esc(r.area)+'</td><td><span class="res '+esc(r.result)+'">'+esc(r.result)+'</span></td><td>'+esc(r.note)+'</td></tr>';}).join('')+'</table></details>';
     }
     return h+'</div>';
   }
