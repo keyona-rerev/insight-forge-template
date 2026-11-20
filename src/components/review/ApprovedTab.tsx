@@ -303,7 +303,7 @@ export const ApprovedTab = () => {
               Scheduling ({schedulingDrafts.length})
             </CardTitle>
             <CardDescription className="text-slate-700">
-              Approved and being sent to the scheduler now. This usually finishes within a minute or so. This page updates itself as it goes. Nothing to do here.
+              Approved and being sent to the scheduler now. This page updates itself as it goes. Nothing to do here.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
