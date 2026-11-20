@@ -163,13 +163,20 @@ var F=[
   {t:"Click Generate token. The token starts with github_pat_ and is shown once. Copy it and paste it into the box below."}]}
  ,ok:function(x){return /^github_pat_/.test(x)||"Should start with github_pat_."}},
 {t:"Supabase access token in Supabase",v:"SUPABASE_ACCESS_TOKEN",req:1,secret:1,
- why:["Lets the installer build the database, deploy functions and set the app's secrets."],without:["No database. No functions."],
+ why:["Lets the installer build the database, deploy functions and set the app's secrets.","It needs Full access. The installer must create tables, deploy functions and set secrets.","The token reaches your organization only. It does not need a project yet. You make the project in the next cards."],without:["No database. No functions."],
  link:["Open the Supabase token page","https://supabase.com/dashboard/account/tokens"],
  form:function(){return[
-  {t:"Sign in to Supabase with the account that owns the project. Click Generate new token."},
-  {l:"Token name. Paste into the name box.",c:"insightforge-setup"},
-  {t:"If the page asks for an expiry, choose the longest option."},
-  {t:"Click Generate token. The token starts with sbp_ and is shown once. Copy it and paste it into the box below."}]}
+  {t:"Sign in to Supabase with the account that will own the project."},
+  {l:"Click the green button at the top right of the page. Its name is:",p:"Generate new token"},
+  {l:"Name. Paste into the Name box.",c:"insightforge-setup"},
+  {l:"Expires in. Open the dropdown. Choose this option.",p:"Never"},
+  {l:"Resource access. Choose this option. Do not choose Project. Your project does not exist yet.",p:"Organization"},
+  {l:"Organization. Open the dropdown and tick your organization. Press Esc to close the list.",p:"your organization"},
+  {l:"Permissions. Open the Permission preset dropdown. Choose this option.",p:"Full access"},
+  {l:"Click the green button at the bottom right.",p:"Review access"},
+  {t:"Step 2 of 2 opens. A red High risk box shows. That is expected for Full access."},
+  {l:"Click the green button at the bottom right.",p:"Create token"},
+  {t:"The token starts with sbp_ and is shown once. Copy it and paste it into the box below."}]}
  ,ok:function(x){return /^sbp_/.test(x)||"Should start with sbp_."}},
 {t:"Supabase database password in Supabase",v:"SUPABASE_DB_PASSWORD",req:1,secret:1,
  why:["Direct database access if it is ever needed.","Supabase shows it once, when you create the project."],without:["No direct database access."],
