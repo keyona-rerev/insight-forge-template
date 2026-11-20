@@ -3,6 +3,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { completeJob, workerSecretOk } from "../_shared/job-logic.ts";
 import { makeDb } from "../_shared/supabase-db.ts";
+import { finalizeOpen as finalizeRelevance, makeSupabaseStore as makeRelevanceStore } from "../_shared/relevance-queue.ts";
+import { finalizeOpen as finalizeSummaries, makeSupabaseStore as makeSummaryStore } from "../_shared/summary-queue.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -38,5 +40,14 @@ serve(async (req) => {
   const gifBase64 = typeof parsed.gifBase64 === "string" ? parsed.gifBase64 : undefined;
   const r = await completeJob(db, { jobId: job_id, completionToken: completion_token, output, runUrl: run_url,
     pngBase64: png_base64, mp4Base64, gifBase64 });
+  // Same-day settle: apply already-completed relevance/summary results as jobs finish instead of
+  // waiting for the next daily fire-due-schedules tick or a manual Score/Settle now. finalizeOpen
+  // only applies or releases finished jobs — it never enqueues, never scores inline, never spends.
+  // Best-effort: a settle failure must not fail the completion the worker just posted.
+  if (r.status < 300) {
+    const settleClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    try { await finalizeRelevance(makeRelevanceStore(settleClient), null); } catch { /* settle best-effort */ }
+    try { await finalizeSummaries(makeSummaryStore(settleClient), null); } catch { /* settle best-effort */ }
+  }
   return json(r.body, r.status);
 });
