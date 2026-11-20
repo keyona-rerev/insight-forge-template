@@ -29,14 +29,20 @@ export interface PublishInput {
   text: string;
   platform: string; // 'linkedin'
   accountId: string; // provider account id (from social_connections)
-  scheduledFor: string; // ISO-8601 UTC instant from the resolver
-  timezone: string; // IANA zone the slot is expressed in
+  scheduledFor?: string; // ISO-8601 UTC instant from the resolver; omit when publishNow
+  timezone?: string; // IANA zone the slot is expressed in
   imageUrl?: string; // public URL of the draft's generated visual, if ready
+  // Immediate publish: the provider publishes synchronously inside the request
+  // (Zernio: publishNow: true, returns platformPostUrl). Wins over scheduledFor.
+  publishNow?: boolean;
+  // Provider idempotency key for safe retries (Zernio: Idempotency-Key header).
+  idempotencyKey?: string;
 }
 
 export interface PublishResult {
   externalPostId: string; // provider post id (idempotency + reference)
   status: string; // provider status, e.g. 'scheduled'
+  platformPostUrl?: string; // live permalink when the provider returns one (immediate publish)
   raw?: unknown;
 }
 
@@ -72,6 +78,10 @@ export interface Publisher {
   // rejects or doesn't support the update; callers should fall back to
   // cancelling and republishing when this throws.
   updateSchedule(postId: string, scheduledFor: string, timezone: string): Promise<void>;
+  // Publish an already-scheduled post immediately (Zernio: PUT publishNow).
+  // Throws when the provider no longer has the post (e.g. 404 after the
+  // connected account changed); callers must NOT auto-republish in that case.
+  publishScheduledNow(postId: string): Promise<void>;
   // Engagement metrics for a live post. Throws on failure, including if the
   // provider account's plan doesn't include analytics access.
   getAnalytics(postId: string): Promise<PostAnalytics>;
