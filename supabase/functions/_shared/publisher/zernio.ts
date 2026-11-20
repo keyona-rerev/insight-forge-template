@@ -102,7 +102,14 @@ export class ZernioPublisher implements Publisher {
       platform: a.platform,
       username: a.username,
       displayName: a.displayName ?? a.name,
-      profileId: a.profileId,
+      // Live /v1/accounts returns profileId as a nested object
+      // ({ _id, name, externalId }), not the string its name suggests
+      // (confirmed 2026-11-20 against a live workspace). Normalize to the
+      // profile's string id; every downstream comparison and the
+      // external_profile_id stored on sync depend on this being a string.
+      profileId: typeof a.profileId === "string"
+        ? a.profileId
+        : (a.profileId?._id ?? a.profileId?.id ?? null),
       status: a.status,
     }));
     return platform ? accounts.filter((a) => a.platform === platform) : accounts;
