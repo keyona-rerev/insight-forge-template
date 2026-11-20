@@ -4,7 +4,9 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
-  base: '/insightforge-app/',
+  // Pages path = the repo name. The Pages workflow sets VITE_BASE_PATH from
+  // github.event.repository.name, so a template copy builds with no edits.
+  base: process.env.VITE_BASE_PATH || '/insightforge-app/',
   server: {
     host: "::",
     port: 8080,
