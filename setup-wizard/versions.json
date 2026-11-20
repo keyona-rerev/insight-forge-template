@@ -29,6 +29,10 @@
     {
      "kind": "Added",
      "text": "Time estimate and direct link on every step"
+    },
+    {
+     "kind": "Added",
+     "text": "Newsletter intake: a Gmail label script (loom-queue) is now an install step, with a test at the health check. Before this, no installed app could receive newsletters."
     }
    ],
    "upgrade_steps": []

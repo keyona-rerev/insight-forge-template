@@ -278,7 +278,7 @@ const Feeds = () => {
         <InstructionsToggle
           instructions={`Sources brings everything that feeds the engine into one place:
 
-1. Automated: Newsletters are ingested automatically via the Gmail label watcher. Reference cards appear here automatically - an AI relevance gate filters out noise before a card is ever created.
+1. Automated: Newsletters are ingested through the Gmail label watcher, a small Google script you set up during installation. Label an email loom-queue and a reference card appears here within about 6 minutes. An AI relevance gate filters out noise.
 2. Manual: Paste article links, upload PDFs, or paste full article text directly
 3. Observations: Capture thesis statements, hooks, and other journal entries - each one becomes a citable reference card as soon as you save it
 
@@ -298,7 +298,7 @@ Reference cards are created from your sources and used for content generation.`}
 
           <TabsContent value="automated">
             <p className="text-sm text-muted-foreground mb-4">
-              Newsletters are ingested automatically via the Gmail label watcher — no setup needed here.
+              Newsletters arrive through the Gmail label watcher. Label an email loom-queue in Gmail and it appears here within about 6 minutes. If nothing arrives, open the Apps Script project and check Executions.
             </p>
 
             <Card>
