@@ -11,16 +11,15 @@ import box, so the block goes to Claude instead:
 1. In the wizard, enter the business website and name on the business screen.
 2. Collect the keys and save the keys file.
 3. Copy the installation brief and paste it into the Claude Code chat.
-4. Paste the intake block into the same chat, right after the brief. Start it
-   with this line: `Client intake answers (use these over your own research
-   where they conflict):`
+4. Paste the intake block into the same chat, right after the brief. Its first
+   line tells Claude to use these answers over its own research.
 
 Claude uses these answers in the brand, schedule and strategy steps, so the
 client is not asked for them again.
 
 ## What the intake collects, and where each answer goes
 
-| Intake answer | Wizard key | Used in |
+| Intake answer | Key | Used in |
 | --- | --- | --- |
 | Business name | `business_name` | Whole install (app, brand, emails) |
 | Public logo link | `logo_url` | Brand step + Visual Studio |

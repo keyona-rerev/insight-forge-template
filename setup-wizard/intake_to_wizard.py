@@ -69,7 +69,7 @@ def main(path):
         for p in problems:
             print(" - " + p, file=sys.stderr)
         return 1
-    print("# Paste everything below into the wizard's Import values box.")
+    print("Client intake answers (use these over your own research where they conflict):")
     for k in WIZARD_KEYS:
         if vals.get(k):
             print(f"{k}={vals[k]}")
