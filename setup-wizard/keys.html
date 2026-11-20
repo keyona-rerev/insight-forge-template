@@ -202,11 +202,11 @@ var F=[
  ,ok:function(x){return /^sbp_/.test(x)||"Should start with sbp_."}},
 {t:"App login email in Supabase",v:"APP_LOGIN_EMAIL",req:1,type:"email",
  why:["This is a NEW login for the Insight Forge app only.","It is not your GitHub login. It is not your Supabase login.","Only this one login can sign in. Sign-up stays off."],without:["No one can sign in."],
- form:function(){return[{t:"Click the box below this card."},{t:"Type the email address you will use to sign in to the app."},{t:"If you want alert emails, use the same email for your Resend account."}]},
+ form:function(){return[{t:"This is a new login for the app. It is not your Supabase sign-in. It is not your GitHub sign-in."},{t:"Click the box below this card."},{t:"Type the email address you will use to sign in to the app."},{t:"If you want alert emails, use the same email for your Resend account."}]},
  ok:function(x){return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x)||"Not an email."}},
 {t:"App login password in Supabase",v:"APP_LOGIN_PASSWORD",req:1,secret:1,
  why:["The password for the new app login in the card above.","It is not your GitHub password. It is not your Supabase password."],without:["No one can sign in."],
- form:function(){return[{t:"Click the box below this card."},{t:"Type a new password for the app. At least 10 characters."},{t:"Write it in your password manager. You need it to sign in."}]},
+ form:function(){return[{t:"This page does not ask for your Supabase password. You can keep signing in to Supabase with GitHub."},{t:"Click the box below this card."},{t:"Type a new password for the app. At least 10 characters."},{t:"Write it in your password manager. You need it to sign in."}]},
  ok:function(x){return x.length>=10||"Use at least 10 characters."}},
 
 {sec:"B. Also required. These turn on publishing, newsletters, alerts and spending safety.",t:"Zernio API key in Supabase",v:"ZERNIO_API_KEY",req:1,secret:1,
