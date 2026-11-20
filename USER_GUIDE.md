@@ -39,7 +39,6 @@ Content Sources → AI Analysis → Reference Cards → Content Creation → Dra
 4. **Review & Schedule** - Approve drafts and schedule them on your content calendar
 
 **Content Sources Supported:**
-- 📧 **Newsletters** - Auto-captured via your unique email address
 - 🔗 **URLs** - Paste any article link
 - 📄 **PDFs** - Upload documents (up to 50 pages)
 - 💡 **Observations** - Manually capture your own insights
@@ -89,15 +88,7 @@ Navigate to **Sources** from the dashboard.
 
 ### Newsletter Inbox
 
-Your unique newsletter email is generated and displayed in **Settings**.
-
-**Setup Steps:**
-
-1. Go to **Settings** → scroll to **Newsletter Email Configuration**
-2. Enter your newsletter domain (e.g., `newsletters.yourbusiness.com`)
-3. Save settings
-4. Your unique email appears with a **Copy** button
-5. Use this email when subscribing to newsletters
+Newsletters reach Insight Forge through Gmail. They are converted to Reference Cards.
 
 **How It Works:**
 - When a newsletter arrives, it's automatically converted to a Reference Card
@@ -536,18 +527,6 @@ Choose your AI backend:
 
 **For Production:** Configure Google AI or Custom provider with your own API key.
 
-### Newsletter Email Configuration
-
-Your unique newsletter email is generated here after configuring your domain.
-
-**Setup:**
-1. Enter your newsletter domain (e.g., `newsletters.yourbusiness.com`)
-2. Save settings
-3. Your unique email appears with a **Copy** button (e.g., `user-abc123-xyz@newsletters.yourbusiness.com`)
-4. Use this email to subscribe to newsletters
-
-**Note:** Your IT team must configure Mailgun first for newsletters to work.
-
 ### Appearance
 
 Customize the look:
@@ -564,11 +543,8 @@ Customize the look:
 
 **Check these in order:**
 
-1. **Domain configured?** Settings → Newsletter Email Configuration
-2. **Email copied correctly?** Make sure you're using your unique email address
-3. **Mailgun working?** Ask IT to verify webhook is receiving
-4. **Rate limited?** Max 50 emails/hour
-5. **Check Sources page** for "Recent Emails" table
+1. **Gmail connected?** Check that the newsletter reached the connected Gmail inbox
+2. **Check Sources page** for "Recent Emails" table
 
 ### AI Processing Fails
 
