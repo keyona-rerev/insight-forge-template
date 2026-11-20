@@ -1001,7 +1001,7 @@
     }
    ],
    "checkbox_label": "All checks are green and the test newsletter became a card",
-   "verify_hint": "Every line shows OK. The test newsletter shows as a card on Sources.",
+   "verify_hint": "Every line shows OK. The test newsletter shows as a card on Sources. Then run in the Supabase SQL editor: select key, length(value) from public.automation_config order by 1; Every length is above 0. A 0 on project_anon_key means the daily jobs get 401 errors and do nothing. Go back to the Point the daily jobs step and paste the anon key.",
    "links": [
     {
      "label": "Open the health check",
