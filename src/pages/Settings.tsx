@@ -511,7 +511,9 @@ const Settings = () => {
                     </div>
                     <Button variant="outline" size="sm" onClick={() => callConnect("sync", platform)}>Refresh</Button>
                   </div>
-                ) : null}
+                ) : (
+                  <p className="text-sm text-muted-foreground">No {label} account connected yet.</p>
+                )}
                 {conn?.external_account_id && platform === "linkedin" ? (
                   <div className="flex flex-wrap items-center gap-2 rounded-lg border p-3 text-sm">
                     <span className="text-muted-foreground">Posts go to the account shown above. If it is your personal profile, switch it to your company page.</span>
@@ -519,11 +521,6 @@ const Settings = () => {
                     <Button variant="outline" size="sm" onClick={() => callConnect("switch_type", platform, { accountType: "personal" })}>Use personal profile</Button>
                   </div>
                 ) : null}
-                {conn?.external_account_id ? (
-                  <div className="hidden" aria-hidden="true">
-                ) : (
-                  <p className="text-sm text-muted-foreground">No {label} account connected yet.</p>
-                )}
                 <Button
                   onClick={async () => {
                     setConnectBusy((b) => ({ ...b, [platform]: true }));
