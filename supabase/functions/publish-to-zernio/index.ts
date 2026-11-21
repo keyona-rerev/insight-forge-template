@@ -123,6 +123,29 @@ const scheduleDraft = async (
       return await needsAttention(`${label} is not connected. Connect it in Settings first.`);
     }
 
+    // Publish-time account-membership gate. The connection was pinned to this
+    // install's profile at connect/sync time, but the provider account can
+    // change afterwards. Re-verify the stored accountId still belongs to the
+    // pinned profile before any provider publish call; a mismatched or
+    // unverifiable account is rejected, never published.
+    try {
+      const pinnedProfileId = await publisher.getDefaultProfileId();
+      const accounts = await publisher.listAccounts(platform);
+      const match = accounts.find((a) => a.accountId === conn.external_account_id);
+      const belongs = pinnedProfileId
+        ? match?.profileId === pinnedProfileId
+        : Boolean(match);
+      if (!belongs) {
+        return await needsAttention(
+          `${label} connection no longer matches this install's pinned publishing profile. Reconnect it in Settings.`,
+        );
+      }
+    } catch (e) {
+      return await needsAttention(
+        `Could not verify the connected ${label} account before publishing (${e instanceof Error ? e.message : String(e)}). Reconnect it in Settings.`,
+      );
+    }
+
     // Atomic claim BEFORE any provider call. The pre-existing pattern was
     // read-check -> provider API -> write, which lets concurrent invocations
     // (UI double-click vs cron sweep) both reach the publisher and create
