@@ -5,6 +5,7 @@
 import { findCollision, collisionVerdict, type NoveltyWindowRow } from "./_shared-novelty.ts";
 import { writeDraftsFromSnapshot, type SnapshotCtx, type DraftOutput } from "./_shared-draft-writer.ts";
 import { completeVisualJob, failVisualPlaceholder } from "./visual-logic.ts";
+import { retryPrompt, type SeedRow } from "./seed-pick.ts";
 import { completeWelcomeJob, WELCOME_KIND, type WelcomeDb } from "./welcome.ts";
 
 export interface Db {
@@ -22,6 +23,10 @@ export interface Db {
   updateSeed(id: string, fields: Record<string, unknown>): Promise<void>;
   updateCard(id: string, fields: Record<string, unknown>): Promise<void>;
   recentDrafts(userId: string, sinceIso: string): Promise<NoveltyWindowRow[]>;
+  // Novelty retry: a fresh seed other than excludeSeedId and not held by
+  // another in-flight job (seed-pick.ts rules). Optional: without it the
+  // retry keeps its seed and only gets the collision note.
+  pickRetrySeed?(userId: string, excludeSeedId: string, laneId: string | null, natureId: string | null): Promise<SeedRow | null>;
   notify(draftId: string): Promise<void>;
   // draft_visuals + drafts access for visual jobs (visual-logic.ts)
   getDraft(id: string): Promise<any | null>;
@@ -238,8 +243,24 @@ export async function completeJob(db: Db, args: {
   for (const o of items) {
     const v = collisionVerdict(findCollision(o, windowRows), claimed.novelty_retries ?? 0);
     if (v.action === "requeue") {
+      // The retry must not be the same request again (install test 2026-11-20:
+      // every same-prompt retry collided again). Switch to a fresh seed when the
+      // job has one, and tell the writer what collided.
+      const s0 = (claimed.input_snapshot ?? {}) as any;
+      let newSeed: SeedRow | null = null;
+      if (s0.seedId && db.pickRetrySeed) {
+        try { newSeed = await db.pickRetrySeed(claimed.user_id, s0.seedId, s0.laneId ?? null, s0.natureId ?? null); }
+        catch (_e) { newSeed = null; }   // retry with the note only
+      }
+      const snapOut = { ...s0 };
+      if (typeof s0.prompt === "string") snapOut.prompt = retryPrompt(s0.prompt, v.reason ?? "novelty collision", newSeed);
+      if (newSeed) {
+        snapOut.seedId = newSeed.id;
+        snapOut.seedRow = { id: newSeed.id, times_used: newSeed.times_used ?? 0 };
+      }
       await db.updateJobWhere(args.jobId, { status: "completing" },
         { status: "queued", claimed_by: null, completion_token_hash: null, claim_token: null,
+          input_snapshot: snapOut,
           novelty_retries: (claimed.novelty_retries ?? 0) + 1, last_error: v.reason, updated_at: now.toISOString() });
       return { status: 422, body: { success: false, requeued: true, reason: v.reason } };
     }
