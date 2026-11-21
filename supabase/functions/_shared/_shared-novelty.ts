@@ -51,7 +51,8 @@ export interface Collision { kind: "title" | "framework" | "stat" | "source" | "
 export function findCollision(
   cand: { title: string; body: string; stat_attributions?: { figure?: string; source?: string }[] },
   window: NoveltyWindowRow[],
-  opts = { titleThreshold: 0.6, themeThreshold: 0.55 },
+  opts: { titleThreshold: number; themeThreshold: number; topicTitle?: number; topicBody?: number } =
+    { titleThreshold: 0.6, themeThreshold: 0.55, topicTitle: 0.3, topicBody: 0.25 },
 ): Collision | null {
   const ct = tokens(cand.title);
   const candFrameworks = new Set(frameworkNames(cand.title + "\n" + cand.body));
@@ -75,6 +76,13 @@ export function findCollision(
     // (the angle) and body separately; a match against either counts.
     const seedSim = (row.seed_insight ?? "").trim() ? jaccard(candBodyTokens, tokens(row.seed_insight ?? "")) : 0;
     const bodySim = (row.body ?? "").trim() ? jaccard(candBodyTokens, tokens(row.body ?? "")) : 0;
+    // Topic: a moderate title overlap AND a moderate body overlap together mean
+    // the same idea. Calibrated on real install-test drafts (novelty.test.mts):
+    // the 3 real repeats scored title 0.30-0.36 / body 0.27-0.55 and all passed
+    // the old title>=0.6 / theme>=0.55 checks; genuinely different posts scored
+    // title 0.00 / body 0.09-0.22.
+    if (sim >= (opts.topicTitle ?? 0.3) && bodySim >= (opts.topicBody ?? 0.25))
+      return { kind: "theme", withTitle: row.title, score: bodySim, detail: "same topic" };
     const tsim = Math.max(seedSim, bodySim);
     if (tsim >= opts.themeThreshold) return { kind: "theme", withTitle: row.title, score: tsim };
   }
