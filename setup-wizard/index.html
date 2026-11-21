@@ -172,7 +172,7 @@ button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #b453
   }
   fetch('steps.json').then(function(r){return r.json();}).then(function(j){
     data=j;document.title=j.title;load();
-    try{var q=new URLSearchParams(location.search).get('stage');if(q&&ORDER.indexOf(q)>=0){st.stage=q;save();history.replaceState(null,'',location.pathname);}}catch(e){}
+    try{var qs=new URLSearchParams(location.search),q=qs.get('stage'),qn=(qs.get('name')||'').slice(0,120),qw=(qs.get('site')||'').slice(0,200);if(qn&&!st.vals.business_name)st.vals.business_name=qn;if(qw&&!st.vals.business_website)st.vals.business_website=qw.replace(/^https?:\/\//i,'').replace(/\/+$/,'');if(q&&ORDER.indexOf(q)>=0){st.stage=q;save();history.replaceState(null,'',location.pathname);}else if(qn||qw){save();}}catch(e){}
     render();
   }).catch(function(){document.getElementById('view').innerHTML='<h1>Could not load steps.json</h1>';});
 })();
