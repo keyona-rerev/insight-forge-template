@@ -7,6 +7,7 @@ import {
   CheckCheck, Lightbulb, Target, CalendarClock, AlertTriangle, Database, Plus, ChevronDown, Search, Palette, HeartPulse,
 } from "lucide-react";
 import { InstructionsToggle } from "@/components/InstructionsToggle";
+import { FastForwardPanel } from "@/components/schedule/FastForwardPanel";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -317,6 +318,9 @@ The dashboard shows your review pipeline and quick access to everything else.`}
             </Collapsible>
           </Card>
         )}
+
+        {/* Same fast-forward panel as Schedule > Cadence. Hidden until the cadence has an active slot. */}
+        <FastForwardPanel className="mb-8" />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* Review tier */}

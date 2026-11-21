@@ -1,5 +1,5 @@
 import { generationOutcome } from "@/lib/generationOutcome";
-import { useEffect, useState, useRef, type Dispatch, type SetStateAction } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { toast } from "sonner";
-import { Plus, Trash2, Loader2, Play, RefreshCw, Calendar, RotateCcw, CalendarClock, Pencil, Save as SaveIcon, FastForward, ChevronRight } from "lucide-react";
-import { resolveNext, nextOccurrence } from "@/lib/scheduleResolver";
+import { Plus, Trash2, Loader2, Play, RefreshCw, Calendar, RotateCcw, CalendarClock, Pencil, Save as SaveIcon } from "lucide-react";
+import { resolveNext } from "@/lib/scheduleResolver";
 import { ScheduleWeekGrid } from "@/components/ScheduleWeekGrid";
+import { FastForwardPanel } from "@/components/schedule/FastForwardPanel";
 import { platformLabel } from "@/lib/platform";
 import { formatFitsPlatform, unavailableFormatLabel } from "@/lib/format-fit";
 
@@ -54,11 +55,6 @@ const TZ_ABBR: Record<string, string> = {
   "Pacific/Honolulu": "HST",
   "UTC": "UTC",
 };
-
-// If a saved fastforward_runs row still says "running" but hasn't been
-// touched in this long, treat it as abandoned (tab closed or reloaded
-// mid-run) rather than showing a live progress bar forever.
-const FF_STALE_MS = 3 * 60 * 1000;
 
 function fmtTime12(time: string): string {
   if (!time) return "";
@@ -113,46 +109,6 @@ interface EligibleParent {
   reuse_window_days: number | null;
 }
 
-// One future occurrence of one slot, produced by walking the slot's own
-// cadence forward from now. This is the unit the fast-forward queue is built
-// from: each item becomes exactly one execute-autopilot-template call,
-// stamped with that specific date instead of always "the next one."
-interface QueueItem {
-  slot: Slot;
-  date: Date;
-}
-
-// Walks every active, non-"as needed" slot's own cadence forward from now
-// and collects every future occurrence within `daysAhead`, capped per slot
-// at `perSlotCap` so one slot with a dense pattern can't crowd out the
-// others. Sorted chronologically across all slots combined, so approving
-// in order later lines up with the order the posts will actually go out.
-function buildUpcomingQueue(activeSlots: Slot[], daysAhead = 90, perSlotCap = 12): QueueItem[] {
-  const items: QueueItem[] = [];
-  const horizon = new Date(Date.now() + daysAhead * 86400000);
-  for (const slot of activeSlots) {
-    if (slot.frequency === "as_needed") continue;
-    let from = new Date();
-    for (let i = 0; i < perSlotCap; i++) {
-      const occ = nextOccurrence(
-        {
-          day_of_week: slot.day_of_week,
-          frequency: slot.frequency as never,
-          anchor: slot.anchor,
-          time_of_day: slot.time_of_day,
-          timezone: slot.timezone,
-        },
-        from,
-      );
-      if (!occ || occ.getTime() > horizon.getTime()) break;
-      items.push({ slot, date: occ });
-      from = new Date(occ.getTime() + 1000);
-    }
-  }
-  items.sort((a, b) => a.date.getTime() - b.date.getTime());
-  return items;
-}
-
 export const CadenceTab = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -177,95 +133,13 @@ export const CadenceTab = () => {
   const [defaultTimezone, setDefaultTimezone] = useState("America/New_York");
 
   const [eligibleParents, setEligibleParents] = useState<EligibleParent[]>([]);
-
-  // Fast-forward: run a batch of upcoming cadence slot-occurrences right
-  // now, instead of waiting on the daily cron or clicking "Run" on one slot
-  // at a time. The number entered is how many scheduled occurrences to work
-  // through (not a total draft count — a slot with a required child produces
-  // two drafts per occurrence, so the actual draft count can run higher).
-  // Each occurrence is stamped with a real, distinct upcoming date (see
-  // buildUpcomingQueue), so approving them later schedules each one on its
-  // own day rather than piling every draft onto the same next occurrence.
-  const [batchTarget, setBatchTarget] = useState<number>(12);
-  const [batchRunning, setBatchRunning] = useState(false);
-  const [batchProgress, setBatchProgress] = useState<{ done: number; total: number; label: string } | null>(null);
-
-  // Fast-forward post-type filter: which formats (drawn from the active
-  // cadence) this batch should generate. Empty on first mount; loadAll seeds
-  // it to every format present in the active cadence (so "all types" by
-  // default), and the user can narrow it to, e.g., just feed posts. A slot is
-  // included in the run only if its (parent) format is selected here.
-  const [selectedFormatIds, setSelectedFormatIds] = useState<Set<string>>(new Set());
-
-  // Last-run summary line, persisted so it survives navigating away and
-  // back — both while a run is still in progress (so it doesn't look like
-  // nothing is happening) and after it finishes (so "did that work" always
-  // has a visible, timestamped answer instead of only a toast you might
-  // have missed).
-  const [lastRun, setLastRun] = useState<{
-    completedAt: string | null; created: number; attempted: number; failed: number;
-  } | null>(null);
-  const startedHereRef = useRef(false);
-
-  // The Launch page sends the owner here with ?autorun=3. Once the cadence
-  // is loaded, start the first batch of drafts by itself, one time.
-  const autoRanRef = useRef(false);
-  useEffect(() => {
-    if (autoRanRef.current || loading || batchRunning || isDirty || !userId) return;
-    const n = parseInt(new URLSearchParams(window.location.search).get("autorun") || "", 10);
-    if (!n || n < 1) return;
-    const hasActive = slots.some((s) => s.is_active && !s._isNew && s.frequency !== "as_needed");
-    if (!hasActive || selectedFormatIds.size === 0) return;
-    autoRanRef.current = true;
-    const url = new URL(window.location.href);
-    url.searchParams.delete("autorun");
-    window.history.replaceState({}, "", url.toString());
-    setBatchTarget(n);
-    void runFastForward(n);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, slots, selectedFormatIds, batchRunning, isDirty, userId]);
+  // Bumped after each load so the fast-forward panel re-reads the saved cadence.
+  const [ffRefresh, setFfRefresh] = useState(0);
 
   useEffect(() => {
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // If batchRunning is true but this exact mount didn't start the loop
-  // (resumed from a saved row after navigating back), poll for progress
-  // instead of sitting on stale numbers until a manual refresh.
-  useEffect(() => {
-    if (!batchRunning || startedHereRef.current || !userId) return;
-    const interval = setInterval(async () => {
-      const { data: row } = await supabase
-        .from("fastforward_runs" as any)
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (!row) { setBatchRunning(false); return; }
-      const r = row as any;
-      if (r.running) {
-        setBatchProgress({ done: r.done ?? 0, total: r.total ?? 0, label: r.current_label ?? "" });
-      } else {
-        setBatchRunning(false);
-        setBatchProgress(null);
-        setLastRun({
-          completedAt: r.completed_at,
-          created: r.last_created ?? 0,
-          attempted: r.last_attempted ?? 0,
-          failed: r.last_failed ?? 0,
-        });
-        loadAll();
-      }
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [batchRunning, userId]);
-
-  const persistFF = async (uid: string, patch: Record<string, unknown>) => {
-    await supabase.from("fastforward_runs" as any).upsert(
-      { user_id: uid, ...patch },
-      { onConflict: "user_id" }
-    );
-  };
 
   const loadAll = async () => {
     setLoading(true);
@@ -274,14 +148,13 @@ export const CadenceTab = () => {
     const uid = session.user.id;
     setUserId(uid);
 
-    const [fmt, nat, jb, ln, rd, sched, ffRow, prof] = await Promise.all([
+    const [fmt, nat, jb, ln, rd, sched, prof] = await Promise.all([
       supabase.from("formats").select("id, name, platform, min_words").eq("user_id", uid).eq("is_active", true).order("sort_order"),
       supabase.from("natures").select("id, name").eq("user_id", uid).eq("is_active", true).order("sort_order"),
       supabase.from("jobs").select("id, name").eq("user_id", uid).eq("kind", "engine_job").eq("is_active", true).order("sort_order"),
       supabase.from("lanes").select("id, name").eq("user_id", uid).eq("is_active", true).order("sort_order"),
       supabase.from("readers").select("id, role").eq("user_id", uid).eq("is_active", true).order("sort_order"),
       supabase.from("content_schedules").select("*").eq("user_id", uid).order("day_of_week"),
-      supabase.from("fastforward_runs" as any).select("*").eq("user_id", uid).maybeSingle(),
       supabase.from("profiles").select("default_timezone, default_post_time").eq("user_id", uid).maybeSingle(),
     ]);
 
@@ -306,45 +179,6 @@ export const CadenceTab = () => {
       platform: (s as any).platform ?? null,
     })));
 
-    // Seed / reconcile the fast-forward post-type filter against the formats
-    // actually present in the active recurring cadence. First load (empty
-    // selection) selects them all; later loads keep the user's current picks
-    // but drop any format no longer in the cadence, falling back to "all" if
-    // that would leave nothing selected.
-    const activeCadenceFormatIds = (sched.data || [])
-      .filter((s: any) => s.is_active && s.frequency !== "as_needed")
-      .map((s: any) => s.format_id as string);
-    const availableFormatSet = new Set(activeCadenceFormatIds);
-    setSelectedFormatIds((prev) => {
-      if (prev.size === 0) return availableFormatSet;
-      const kept = new Set([...prev].filter((id) => availableFormatSet.has(id)));
-      return kept.size ? kept : availableFormatSet;
-    });
-
-    const ff = ffRow.data as any;
-    if (ff) {
-      const updatedAt = new Date(ff.updated_at as string).getTime();
-      const stale = ff.running && Date.now() - updatedAt > FF_STALE_MS;
-      if (ff.running && !stale) {
-        setBatchRunning(true);
-        setBatchProgress({ done: ff.done ?? 0, total: ff.total ?? 0, label: ff.current_label ?? "" });
-        if (ff.target_count) setBatchTarget(ff.target_count);
-      } else {
-        if (ff.running && stale) {
-          await persistFF(uid, { running: false });
-          toast.info("A previous fast-forward looks like it was interrupted.");
-        }
-        if (ff.completed_at) {
-          setLastRun({
-            completedAt: ff.completed_at,
-            created: ff.last_created ?? 0,
-            attempted: ff.last_attempted ?? 0,
-            failed: ff.last_failed ?? 0,
-          });
-        }
-      }
-    }
-
     const { data: parents } = await supabase
       .from("drafts")
       .select("id, title, content_type, published_at, reuse_count, max_reuse_count, reuse_window_days")
@@ -365,6 +199,7 @@ export const CadenceTab = () => {
 
     setIsDirty(false);
     setLoading(false);
+    setFfRefresh((n) => n + 1);
   };
 
   const updateSlot = (id: string, patch: Partial<Slot>) => {
@@ -461,124 +296,10 @@ export const CadenceTab = () => {
 
   const nameOf = (rows: NamedRow[], id: string | null) => rows.find((r) => r.id === id)?.name;
 
-  const toggleFormat = (id: string) =>
-    setSelectedFormatIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-
-  // Fills the whole target count at once, using every active weekly/recurring
-  // slot's own cadence walked forward. Runs are sequential (not parallel) on
-  // purpose: each one is a real AI call, and a live progress line here is
-  // more honest than a spinner with no feedback for a couple of minutes.
-  // A single failed run is logged and skipped rather than aborting the rest
-  // of the batch.
-  const runFastForward = async (targetOverride?: number) => {
-    const target = typeof targetOverride === "number" ? targetOverride : batchTarget;
-    if (!userId) return;
-    if (isDirty) {
-      toast.error("You have unsaved cadence changes — save them first so fast-forward uses the current setup");
-      return;
-    }
-    const activeSlots = slots.filter((s) => s.is_active && !s._isNew && s.frequency !== "as_needed");
-    if (!activeSlots.length) {
-      toast.error("No active weekly/recurring slots to fast-forward. Add or activate one below first.");
-      return;
-    }
-    // Narrow to the selected post types. An empty selection is treated as a
-    // real "nothing chosen" (the Generate button guards against it too), never
-    // as "all", so a stray empty set can't silently run the whole cadence.
-    const selectedSlots = selectedFormatIds.size
-      ? activeSlots.filter((s) => selectedFormatIds.has(s.format_id))
-      : [];
-    if (!selectedSlots.length) {
-      toast.error("Pick at least one post type to fast-forward.");
-      return;
-    }
-    const queue = buildUpcomingQueue(selectedSlots);
-    if (!queue.length) {
-      toast.error("Couldn't find upcoming occurrences for the selected post types.");
-      return;
-    }
-
-    startedHereRef.current = true;
-    setBatchRunning(true);
-    setLastRun(null);
-    let created = 0;
-    let attempted = 0;
-    let failed = 0;
-    let queued = 0;
-    let pending = 0;
-    let completed = 0;
-    await persistFF(userId, {
-      running: true, target_count: target, done: 0, total: target,
-      current_label: "", started_at: new Date().toISOString(),
-    });
-
-    try {
-      for (const item of queue) {
-        if (attempted >= target) break;
-        attempted++;
-        const label = `${nameOf(natures, item.slot.nature_id) ?? "…"} ${nameOf(formats, item.slot.format_id) ?? "…"} — ${item.date.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}`;
-        setBatchProgress({ done: created, total: target, label });
-        await persistFF(userId, { done: created, total: target, current_label: label });
-
-        const { data, error } = await supabase.functions.invoke("execute-autopilot-template", {
-          body: { scheduleId: item.slot.id, isTestRun: false, scheduledForOverride: item.date.toISOString() },
-        });
-
-        if (error) {
-          console.error("Fast-forward run failed for slot", item.slot.id, error);
-          failed++;
-          continue;
-        }
-        const outcome = generationOutcome(data);
-        if (outcome.kind === "queued") queued++;
-        else if (outcome.kind === "pending") pending++;
-        else if (outcome.kind === "completed") { completed++; created += outcome.drafts; }
-        else failed++;
-      }
-    } finally {
-      setBatchRunning(false);
-      setBatchProgress(null);
-      startedHereRef.current = false;
-      const completedAt = new Date().toISOString();
-      await persistFF(userId, {
-        running: false, done: created, total: target, completed_at: completedAt,
-        last_created: created, last_attempted: attempted, last_failed: failed,
-      });
-      setLastRun({ completedAt, created, attempted, failed });
-    }
-
-    if (queued || pending) {
-      toast.info(`${queued} new generation job(s) queued; ${pending} already queued or running.`, {
-        description: `${created} drafts confirmed in the responses, ${completed} completed requests, ${failed} failed or unconfirmed. Queued jobs are not yet drafts; check Review after they complete.`,
-      });
-    } else if (failed === attempted) {
-      toast.error("No generation was confirmed. The requests failed or returned an unknown result.");
-    } else {
-      toast.info(`${created} drafts confirmed in responses; ${completed} completed requests; ${failed} failed or unconfirmed.`, {
-        description: "An already-completed duplicate request does not create a second draft. Check Review for results.",
-      });
-    }
-    await loadAll();
-  };
-
   const slotsByDay = DAYS_ORDER.map((day) => ({
     day,
     daySlots: slots.filter((s) => s.day_of_week === day),
   }));
-
-  // Distinct formats present in the active recurring cadence — the options
-  // shown in the fast-forward "Post types" filter. Only worth showing when
-  // there's more than one to choose between.
-  const cadenceFormatIds = Array.from(
-    new Set(slots.filter((s) => s.is_active && !s._isNew && s.frequency !== "as_needed").map((s) => s.format_id))
-  );
-  const cadenceFormats = cadenceFormatIds
-    .map((id) => formats.find((f) => f.id === id))
-    .filter(Boolean) as NamedRow[];
 
   if (loading) return (
     <div className="flex items-center justify-center py-24">
@@ -609,87 +330,12 @@ export const CadenceTab = () => {
         </div>
       </div>
 
-      <Card className="mb-6 border-primary/40 bg-primary/5">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <FastForward className="h-4 w-4" />Fast-forward: generate upcoming posts now
-          </CardTitle>
-          <CardDescription>
-            Runs your active cadence slots ahead of schedule, right now, instead of waiting on the daily run. Each occurrence is stamped with a real future date from that slot's own cadence, so approving them later schedules each one on its own day.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {cadenceFormats.length > 1 && (
-            <div className="flex items-center gap-2 flex-wrap mb-3">
-              <Label className="text-sm font-medium whitespace-nowrap">Post types</Label>
-              {cadenceFormats.map((f) => {
-                const on = selectedFormatIds.has(f.id);
-                return (
-                  <Button
-                    key={f.id}
-                    type="button"
-                    size="sm"
-                    variant={on ? "default" : "outline"}
-                    onClick={() => toggleFormat(f.id)}
-                    disabled={batchRunning}
-                    className="h-7"
-                  >
-                    {f.name} <span className="ml-1 opacity-70">({platformLabel(f.platform)})</span>
-                  </Button>
-                );
-              })}
-              <span className="text-xs text-muted-foreground">
-                {selectedFormatIds.size >= cadenceFormats.length ? "all types" : `${selectedFormatIds.size} of ${cadenceFormats.length} selected`}
-              </span>
-            </div>
-          )}
-          <div className="flex items-center gap-3 flex-wrap">
-            <Label htmlFor="batch-target" className="text-sm font-medium whitespace-nowrap">Go through the next</Label>
-            <Input
-              id="batch-target"
-              type="number"
-              min={1}
-              max={40}
-              value={batchTarget}
-              onChange={(e) => setBatchTarget(Math.max(1, Math.min(40, parseInt(e.target.value) || 1)))}
-              className="w-20"
-              disabled={batchRunning}
-            />
-            <span className="text-sm text-muted-foreground">scheduled slot-occurrences, in cadence order</span>
-            <Button
-              onClick={() => runFastForward()}
-              disabled={batchRunning || (cadenceFormats.length > 0 && selectedFormatIds.size === 0)}
-              className="ml-auto"
-            >
-              {batchRunning ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Generating...</>
-              ) : (
-                <><FastForward className="h-4 w-4 mr-2" />Generate now</>
-              )}
-            </Button>
-          </div>
-          {batchProgress && (
-            <p className="text-xs text-muted-foreground mt-3">
-              {batchProgress.done} of {batchProgress.total} so far — working on: {batchProgress.label}
-            </p>
-          )}
-          {!batchRunning && lastRun && (
-            <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
-              <span>
-                Last fast-forward: {lastRun.completedAt ? new Date(lastRun.completedAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "unknown time"}
-                {" - "}{lastRun.created} draft{lastRun.created === 1 ? "" : "s"} confirmed synchronously across {lastRun.attempted} request{lastRun.attempted === 1 ? "" : "s"}. Queued results may arrive later.
-                {lastRun.failed ? `, ${lastRun.failed} failed` : ""}
-              </span>
-              <button
-                onClick={() => navigate("/review")}
-                className="inline-flex items-center gap-0.5 text-primary hover:underline shrink-0"
-              >
-                Go to Review queue<ChevronRight className="h-3 w-3" />
-              </button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <FastForwardPanel
+        blockedReason={isDirty ? "You have unsaved cadence changes — save them first so fast-forward uses the current setup" : null}
+        refreshKey={ffRefresh}
+        allowAutorun
+        onDone={loadAll}
+      />
 
       {/* Week-at-a-glance grid — only renders when there are active slots */}
       <ScheduleWeekGrid
