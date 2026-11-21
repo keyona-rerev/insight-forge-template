@@ -55,7 +55,7 @@ JSON RULES (the app rejects the pack if a rule fails)
 - natures: 4 or more. Each: key, name, move (20+ characters: how the post argues), evidence_type, fit (high, medium or low).
 - jobs: 3 or more. Each: key, name, description, funnel_stage (tofu, mofu or bofu).
 - schedule: 3 or more slots, and at least 2 with frequency weekly. Each: format, nature, job (keys from the lists above), optional lane and reader keys, day_of_week (0 Sunday to 6 Saturday), frequency (weekly, biweekly, monthly, quarterly), time (HH:MM). Propose a realistic rhythm for this business, 3 posts a week at most.
-- seeds: 12 or more starting topics. Each: premise (25+ characters, one specific idea this business can speak on from real experience), category, nature (a nature key).
+- seeds: 12 or more starting topics. Each: premise (25+ characters, one specific idea this business can speak on from real experience), category, nature (a nature key). Every seed needs its own subject: no two seeds about the same system, story, tool or example (two seeds about the same daily briefing count as one). Before you show the pack, list each seed's subject in a few words and replace any repeat.
 - sources: 8 to 14. Each: url, name, first_party (true for the business's own pages). At least 4 first-party pages and 4 public pages from reputable sites on the business's topics.
 - Make the formats, natures and schedule different from each other so 12 posts do not read the same.
 - Write voice, hard rules and seeds in this business's own voice and terms.
