@@ -324,7 +324,7 @@ serve(async (req) => {
     };
 
     const [{ data: format }, { data: nature }, { data: job }] = await Promise.all([
-      supabase.from("formats").select("*").eq("id", slot.format_id).eq("user_id", userId).single(),
+      supabase.from("formats").select("*").eq("id", slot.format_id).eq("user_id", userId).eq("is_active", true).single(),
       supabase.from("natures").select("*").eq("id", slot.nature_id).eq("user_id", userId).single(),
       supabase.from("jobs").select("*").eq("id", slot.job_id).eq("user_id", userId).single(),
     ]);
@@ -489,7 +489,7 @@ serve(async (req) => {
     const childNatureId = slot.child_nature_id || slot.nature_id;
     const loadChildLibs = async () => {
       const [{ data: cf }, { data: cn }] = await Promise.all([
-        supabase.from("formats").select("*").eq("id", childFormatId).eq("user_id", userId).single(),
+        supabase.from("formats").select("*").eq("id", childFormatId).eq("user_id", userId).eq("is_active", true).single(),
         supabase.from("natures").select("*").eq("id", childNatureId).eq("user_id", userId).single(),
       ]);
       return { cf, cn };
