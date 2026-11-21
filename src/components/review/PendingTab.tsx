@@ -82,6 +82,11 @@ export const PendingTab = () => {
   const [selectedDraft, setSelectedDraft] = useState<Draft | null>(null);
   const [rejectionFeedback, setRejectionFeedback] = useState("");
 
+  // Revise opens a notes box first. With notes, the AI rewrites the draft
+  // to follow them; with none, it runs the prose clean-up pass only.
+  const [reviseTarget, setReviseTarget] = useState<Draft | null>(null);
+  const [reviseNotes, setReviseNotes] = useState("");
+
   // Sort/filter by platform then post type. Formats already carry a
   // platform column (defaults to "linkedin" today, but the field exists
   // for whenever a venture publishes to more than one place), so this
@@ -223,8 +228,10 @@ export const PendingTab = () => {
   // argument, facts, or figures. Unlike Approve/Reject, the draft never
   // leaves this list -- it just updates in place so it can still be
   // reviewed, revised again, or approved right after.
-  const handleRevise = async (draftId: string) => {
+  const handleRevise = async (draftId: string, notesInput = "") => {
     if (transitioning[draftId]) return;
+    const notes = notesInput.trim();
+    const doneMsg = notes ? "Revised with your notes." : "Revised — trope cleanup pass applied.";
     setTransition(draftId, "revising");
 
     // Captured before the request so the 202-poll completion path can CAS on
@@ -233,7 +240,7 @@ export const PendingTab = () => {
     // refused instead of blindly overwriting their edits.
     const preUpdatedAt = drafts.find(d => d.id === draftId)?.updated_at ?? "";
 
-    const { data, error } = await supabase.functions.invoke("revise-draft", { body: { draftId } });
+    const { data, error } = await supabase.functions.invoke("revise-draft", { body: { draftId, notes: notes || undefined } });
 
     // 202 flow: the revision runs as a claude_jobs worker job (Claude
     // subscription path). The edge function returns { queued, jobId } when
@@ -284,6 +291,7 @@ export const PendingTab = () => {
           title: result.title || drafts.find(d => d.id === draftId)?.title,
           body: result.content,
           revision_count: preCount + 1,
+          ...(notes ? { revision_feedback: notes } : {}),
         })
         .eq("id", draftId)
         .eq("updated_at", preUpdatedAt)
@@ -300,7 +308,7 @@ export const PendingTab = () => {
       }
       setDrafts(prev => prev.map(d => d.id === draftId ? { ...d, title: result.title || d.title, body: result.content!, revision_count: preCount + 1, updated_at: casRows[0].updated_at } : d));
       clearTransition(draftId);
-      toast.success("Revised — trope cleanup pass applied.");
+      toast.success(doneMsg);
       return;
     }
 
@@ -314,9 +322,9 @@ export const PendingTab = () => {
       return;
     }
 
-    setDrafts(prev => prev.map(d => d.id === draftId ? { ...d, title: data.title, body: data.content } : d));
+    setDrafts(prev => prev.map(d => d.id === draftId ? { ...d, title: data.title, body: data.content, ...(data.updatedAt ? { updated_at: data.updatedAt } : {}) } : d));
     clearTransition(draftId);
-    toast.success("Revised — trope cleanup pass applied.");
+    toast.success(doneMsg);
   };
 
   const handleSmartReject = (draft: Draft) => {
@@ -593,14 +601,14 @@ export const PendingTab = () => {
                             {state === "approved" && "Approved — moving to your queue"}
                             {state === "rejecting" && "Rejecting..."}
                             {state === "rejected" && "Rejected — leaving review"}
-                            {state === "revising" && "Revising — cutting the usual tropes..."}
+                            {state === "revising" && "Revising..."}
                           </div>
                         ) : (
                           <div className="flex gap-2 ml-4 shrink-0">
                             <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => handleSmartReject(draft)}>
                               <X className="h-4 w-4 mr-1" />Reject
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => handleRevise(draft.id)}>
+                            <Button size="sm" variant="outline" onClick={() => { setReviseTarget(draft); setReviseNotes(""); }}>
                               <Wand2 className="h-4 w-4 mr-1" />Revise
                             </Button>
                             <Button size="sm" onClick={() => handleApprove(draft.id)}>
@@ -643,6 +651,37 @@ export const PendingTab = () => {
           })}
         </div>
       )}
+
+      <Dialog open={!!reviseTarget} onOpenChange={(open) => { if (!open) setReviseTarget(null); }}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Revise draft</DialogTitle>
+            <DialogDescription>Tell the AI what to change in {reviseTarget?.title || "this draft"}.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 py-4">
+            <Label htmlFor="revise-notes">Notes <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Textarea
+              id="revise-notes"
+              placeholder="e.g. Open with the client story instead of the statistic. Cut the last paragraph. Make it sound less formal."
+              value={reviseNotes}
+              onChange={(e) => setReviseNotes(e.target.value)}
+              rows={5}
+              autoFocus
+            />
+            <p className="text-sm text-muted-foreground">
+              The AI rewrites the draft to follow your notes and keeps everything else. With no notes, it only cleans up common AI phrasing. The draft stays here so you can review it again.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReviseTarget(null)}>Cancel</Button>
+            <Button
+              onClick={() => { const d = reviseTarget; const n = reviseNotes; setReviseTarget(null); if (d) void handleRevise(d.id, n); }}
+            >
+              <Wand2 className="h-4 w-4 mr-2" />{reviseNotes.trim() ? "Revise with notes" : "Clean up only"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={rejectModalOpen} onOpenChange={setRejectModalOpen}>
         <DialogContent className="sm:max-w-[500px]">

@@ -49,7 +49,10 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
-    const { draftId, notes, maxWaitMs } = await req.json();
+    const { draftId, notes: rawNotes, maxWaitMs } = await req.json();
+    // Reviewer notes from the Revise box. When present they drive the
+    // rewrite; when empty this is the prose clean-up pass only.
+    const notes = typeof rawNotes === "string" ? rawNotes.trim().slice(0, 4000) : "";
     if (!draftId) {
       return new Response(JSON.stringify({ error: "draftId is required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -102,18 +105,42 @@ serve(async (req) => {
       ? draft.stat_attributions.map((a: any) => `- "${a.figure}" from ${a.source}`).join("\n")
       : "";
 
-    const prompt = `Rewrite this post's prose. This is a line-level editing pass, not a rewrite of the argument and not a fresh take on the topic.
+    const tropeList = PROSE_TROPES.map((t) => `- ${t}`).join("\n");
+    const prompt = notes
+      ? `Revise this post by following the reviewer's notes.
+
+REVIEWER'S NOTES (these come first; do exactly what they ask):
+${notes}
+
+CURRENT CONTENT:
+Title: ${draft.title}
+Body:
+${draft.body}
+${statLines ? `\nFIGURES ALREADY CITED:\n${statLines}` : ""}
+
+HOW TO APPLY THE NOTES
+- Make every change the notes ask for, even if that means a different opening, angle, structure, length, title or example.
+- Keep everything the notes do not ask you to change.
+- Figures: keep any figure you use worded exactly as listed above. You may drop a figure if the notes ask for it. Never add a new number, statistic or source that is not listed above; if the notes ask for one, write the point without a number.
+- If a note cannot be followed without inventing facts, follow the rest and leave that part out.
+
+ALSO CUT THESE AI-WRITING TROPES wherever they appear:
+${tropeList}
+
+${strategyBlock}
+
+Respond ONLY with valid JSON: {"title": "...", "content": "the fully revised post"}`
+      : `Rewrite this post's prose. This is a line-level editing pass, not a rewrite of the argument and not a fresh take on the topic.
 
 CURRENT CONTENT:
 Title: ${draft.title}
 Body:
 ${draft.body}
 ${statLines ? `\nFIGURES ALREADY CITED (keep every one of these worded exactly as-is; do not alter a number and do not introduce new ones):\n${statLines}` : ""}
-${notes ? `\nADDITIONAL NOTES FROM THE REVIEWER:\n${notes}` : ""}
 
 WHAT TO FIX
 Cut these specific tropes wherever they show up, and rewrite around them so the point still lands, just without the crutch:
-${PROSE_TROPES.map((t) => `- ${t}`).join("\n")}
+${tropeList}
 
 WHAT TO PRESERVE
 - The actual argument, structure, and length. Do not condense this into a summary or pad it into something longer.
@@ -125,7 +152,9 @@ ${strategyBlock}
 Respond ONLY with valid JSON: {"title": "...", "content": "the fully rewritten post"}`;
 
     const system = buildSystemPrompt(
-      "You are a sharp, unsentimental line editor. Your only job on this pass is prose quality: cut the specific tropes you're given, and leave everything else -- the argument, the facts, the structure -- intact. Always respond with valid JSON only.",
+      notes
+        ? "You are an editor revising a post for its owner. The owner's notes are your instructions: apply all of them, keep what they don't touch, and never invent facts or figures. Always respond with valid JSON only."
+        : "You are a sharp, unsentimental line editor. Your only job on this pass is prose quality: cut the specific tropes you're given, and leave everything else -- the argument, the facts, the structure -- intact. Always respond with valid JSON only.",
       hardRules, voiceRules, inlineAttribution
     );
     // Subscription path: enqueue the edit pass onto claude_jobs; the private
@@ -148,7 +177,7 @@ Respond ONLY with valid JSON: {"title": "...", "content": "the fully rewritten p
         draft_id: draftId,
         version: currentVersion,
         body: draft.body,
-        changes_summary: `Before prose revision (trope cleanup pass)${notes ? `: ${notes}` : ""}`,
+        changes_summary: notes ? `Before revision with notes: ${notes.slice(0, 300)}` : "Before prose revision (trope cleanup pass)",
       });
     }
     }
@@ -175,7 +204,9 @@ Respond ONLY with valid JSON: {"title": "...", "content": "the fully rewritten p
       title: result.title || draft.title,
       body: result.content,
       revision_count: currentVersion,
-    }).eq("id", draftId).eq("updated_at", draft.updated_at).select("id");
+      // Keep the owner's notes on the draft, next to the revision they caused.
+      ...(notes ? { revision_feedback: notes } : {}),
+    }).eq("id", draftId).eq("updated_at", draft.updated_at).select("id, updated_at");
 
     if (!casRows?.length) {
       return new Response(
@@ -185,7 +216,7 @@ Respond ONLY with valid JSON: {"title": "...", "content": "the fully rewritten p
     }
 
     return new Response(
-      JSON.stringify({ success: true, title: result.title || draft.title, content: result.content, revisionCount: currentVersion }),
+      JSON.stringify({ success: true, title: result.title || draft.title, content: result.content, revisionCount: currentVersion, updatedAt: casRows[0].updated_at }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
