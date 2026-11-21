@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolveNext, type Frequency } from "../_shared/schedule-resolver.ts";
 import { slotFeedBlock, formatFitsPlatform, feedPlatform } from "../_shared/publisher/platform-rules.ts";
 import { instagramConventionsBlock } from "../_shared/strategy-context.ts";
+import { pickSeed, coveredBlock, HOLDING_STATUSES, type SeedRow } from "../_shared/seed-pick.ts";
 
 // Knowledge Loom autopilot. A schedule slot is a standing instruction: produce a post
 // of this format and nature, doing this job, for this lane and reader. Generation reads
@@ -363,6 +364,16 @@ serve(async (req) => {
     const laneScopes = ["both"];
     if (lane?.key) laneScopes.push(lane.key);
     let seed: any = null;
+    // Seeds other queued/running drafts are already writing about. Usage is only
+    // recorded when a draft completes, so without this a batch takes the same seeds.
+    const { data: inFlight } = await supabase
+      .from("claude_jobs")
+      .select("seed:input_snapshot->>seedId")
+      .eq("user_id", userId)
+      .eq("route", "execute-autopilot-template")
+      .in("status", HOLDING_STATUSES);
+    const heldSeedIds = new Set<string>((inFlight || []).map((r: any) => r.seed).filter(Boolean));
+    let heldPremises: string[] = [];
     {
       const { data: seeds } = await supabase
         .from("seeds")
@@ -370,13 +381,29 @@ serve(async (req) => {
         .eq("user_id", userId)
         .eq("is_active", true)
         .in("lane_scope", laneScopes)
-        .order("last_used_at", { ascending: true, nullsFirst: true })
         .order("times_used", { ascending: true })
-        .limit(20);
-      const list = seeds || [];
-      const byNature = list.filter((s) => s.suggested_nature_key && s.suggested_nature_key === nature.key);
-      seed = (byNature[0] || list[0]) ?? null;
+        .order("last_used_at", { ascending: true, nullsFirst: true })
+        .limit(200);
+      const list = (seeds || []) as SeedRow[];
+      // Freshness first; a nature match only breaks ties in the freshest tier.
+      seed = pickSeed(list, heldSeedIds, nature.key) ?? null;
+      heldPremises = list.filter((s) => heldSeedIds.has(s.id) && s.id !== seed?.id).map((s) => s.premise);
     }
+    // ALREADY COVERED: recent non-rejected posts (title + figures) and the
+    // premises other drafts are writing now.
+    const { data: recentForPrompt } = await supabase
+      .from("drafts").select("title, stat_attributions")
+      .eq("user_id", userId)
+      .gte("created_at", new Date(Date.now() - 30 * 86400000).toISOString())
+      .or("approval_status.is.null,approval_status.neq.rejected")
+      .order("created_at", { ascending: false }).limit(15);
+    const alreadyCovered = coveredBlock(
+      (recentForPrompt || []).map((d: any) => ({
+        title: d.title ?? "",
+        figures: (Array.isArray(d.stat_attributions) ? d.stat_attributions : []).map((a: any) => String(a?.figure ?? "")).filter(Boolean),
+      })),
+      heldPremises,
+    );
 
     const brand = {
       business_name: profile.business_name ?? undefined,
@@ -585,7 +612,7 @@ Respond ONLY with JSON: {"title": "...", "body": "...", "angle_used": "one sente
         }
       }
 
-      prompt = `${contextBlock}${seedBlock}${sourceBlock}
+      prompt = `${contextBlock}${seedBlock}${sourceBlock}${alreadyCovered}
 
 Write one post that does the job, argues in the nature, fits the format and its length, speaks to the lane and reader, and answers the reader's questions where natural. Use the audience's preferred language and avoid the language to avoid. Use only figures attributable to the trusted sources and record each one in stat_attributions.
 
