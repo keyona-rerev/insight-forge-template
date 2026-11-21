@@ -16,7 +16,8 @@
 .chbtn.on{border-color:var(--accent);background:#e6f2f0;box-shadow:none}
 .chl{display:block;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#075e58;margin-bottom:2px}
 .chpan{border-left:3px solid var(--accent);padding:2px 0 2px 12px;margin:4px 0 8px}
-.flow{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 10px}.flow .grp{flex:1 1 260px}.flow .gl{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#4b5563;margin-bottom:4px}.flow .st{display:flex;gap:6px}.flow .st span{flex:1;text-align:center;font-size:.82rem;border:1px solid var(--line);border-radius:8px;padding:5px 4px;background:var(--card);color:#4b5563}.flow .st span.done{background:#e6f2f0;border-color:#9bbdb6;color:#075e58}.flow .st span.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.flow{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 10px}.flow .grp{flex:1 1 260px}.flow .gl{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#4b5563;margin-bottom:4px}.flow .st{display:flex;gap:6px}.flow .st span{flex:1;text-align:center;font-size:.82rem;border:1px solid var(--line);border-radius:8px;padding:5px 4px;background:var(--card);color:#4b5563}.flow .st a{flex:1;text-align:center;font-size:.82rem;border:1px solid var(--line);border-radius:8px;padding:5px 4px;background:var(--card);color:#4b5563;text-decoration:none}.flow .st a:hover{border-color:var(--accent);text-decoration:underline}.flow .st a.done{background:#e6f2f0;border-color:#9bbdb6;color:#075e58}
+.flow .st span.done{background:#e6f2f0;border-color:#9bbdb6;color:#075e58}.flow .st span.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
 .biz{font-size:.9rem;color:#4b5563;margin:0 0 8px}.biz b{color:var(--ink)}
 a.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;margin-left:8px}
 .topnav{display:flex;justify-content:space-between;font-size:.9rem;margin:0 0 6px}.topnav a{color:var(--accent)}
@@ -94,7 +95,7 @@ ol.form>li::before{top:11px}
 <body>
 <main>
 <div class="topnav"><a href="./">&larr; Back to the setup wizard</a><a href="history">Version history</a></div>
-<div class="flow"><div class="grp"><div class="gl">In your browser</div><div class="st"><span class="done">&#10003; Business</span><span class="on">2 &middot; Keys</span></div></div><div class="grp"><div class="gl">In Claude desktop</div><div class="st"><span>3 &middot; Claude Code</span><span>4 &middot; Brief</span><span>5 &middot; Accept</span></div></div></div>
+<div class="flow"><div class="grp"><div class="gl">In your browser</div><div class="st"><a class="done" data-stage="business" href="./?stage=business">&#10003; Business</a><span class="on" aria-current="step">2 &middot; Keys</span></div></div><div class="grp"><div class="gl">In Claude desktop</div><div class="st"><a data-stage="code" href="./?stage=code">3 &middot; Claude Code</a><a data-stage="brief" href="./?stage=brief">4 &middot; Brief</a><a data-stage="accept" href="./?stage=accept">5 &middot; Accept</a></div></div></div>
 <p class="biz" id="bizline" hidden></p>
 <h1>Collect your keys</h1>
 <ul>
@@ -111,7 +112,7 @@ ol.form>li::before{top:11px}
 </div>
 <div class="warn" style="background:#eef6f2;border-color:#9cc9b4"><p style="margin:0 0 6px"><b>Already saved a keys file?</b> Choose it here. This page fills every box from it, so you do not type anything again.</p><p style="margin:0 0 6px"><input type="file" id="loadfile" accept=".txt,text/plain"></p><p id="loadmsg" style="margin:0"></p></div>
 <aside class="dock" id="dock" aria-label="Save your keys file"><div class="dk-lbl">Your keys file</div><div class="dk-cnt" id="dkcnt"></div><button id="save" type="button">Save keys file</button><div class="dk-yay" id="dkyay" role="status" hidden>Yay! You're ready to save your keys file.</div><span class="msg" id="status"></span><a class="btn primary" id="tonext" href="./?stage=code" hidden>Next: 3 &middot; Claude Code &rarr;</a><div class="dk-fx" id="dkfx" aria-hidden="true"></div></aside>
-<div class="card savedbox" id="savedbox" hidden role="status"><h2>&#10003; Keys file saved</h2><p id="savedtxt" style="margin:0 0 6px">Next is stage 3: Claude Code, in Claude desktop.</p><a class="btn primary big" id="gonext" href="./?stage=code">Next: 3 &middot; Claude Code &rarr;</a><button type="button" id="staybtn">Stay on this page</button><p id="autotxt" style="margin:8px 0 0;font-size:.9rem"></p></div>
+<div class="card savedbox" id="savedbox" hidden role="status"><h2>&#10003; Keys file saved</h2><p id="savedtxt" style="margin:0 0 6px"></p><a class="btn primary big" id="gonext" href="./?stage=code">Next: 3 &middot; Claude Code &rarr;</a><button type="button" id="staybtn">Stay on this page</button><p id="autotxt" style="margin:8px 0 0;font-size:.9rem"></p></div>
 <div class="dots" id="dots"></div>
 <div class="nav"><button id="back" type="button">&larr; Back</button><span class="ctr" id="ctr"></span><button id="next" type="button">Next &rarr;</button></div>
 <div id="root"></div>
@@ -120,6 +121,7 @@ ol.form>li::before{top:11px}
 <h2 style="margin-top:0">Save your keys file in the right folder</h2>
 <ul>
 <li>The file holds every key. It must go in your private keys folder. Not Downloads. Not OneDrive, Dropbox or Google Drive.</li>
+<li>This is also the folder Claude Code works in. In stage 3 you choose this same folder. So you make it once, here.</li>
 </ul>
 <div class="lbl">Your private keys folder. Click Copy.</div>
 <div class="val"><input type="text" id="folderpath" spellcheck="false" autocomplete="off"><button type="button" id="copyfolder">Copy</button></div>
@@ -590,7 +592,7 @@ var autoT=null;
 function savedDone(auto){
   var b=document.getElementById("savedbox"),g=document.getElementById("gonext"),at=document.getElementById("autotxt"),nx=document.getElementById("tonext");
   g.href=nextUrl();if(nx){nx.href=nextUrl();nx.hidden=false}
-  document.getElementById("savedtxt").textContent=auto?"Next is stage 3: Claude Code, in Claude desktop.":"First move the file from Downloads into your keys folder. Then click Next. Stage 3 is Claude Code, in Claude desktop.";
+  document.getElementById("savedtxt").textContent=auto?"Next is stage 3: Claude Code, in Claude desktop. There you choose this same folder: "+fp.value+".":"First move the file from Downloads into your keys folder. Then click Next. Stage 3 is Claude Code, in Claude desktop.";
   b.hidden=false;window.scrollTo({top:0,behavior:"smooth"});
   if(autoT){clearInterval(autoT);autoT=null}
   if(!auto){at.textContent="";return}
@@ -619,6 +621,7 @@ document.getElementById("save").onclick=function(){
 (function(){
   try{var q=new URLSearchParams(location.search),n=(q.get("name")||"").slice(0,120),w=(q.get("site")||"").slice(0,200);
     if(n){var b=document.getElementById("bizline");b.textContent="";b.appendChild(document.createTextNode("Setting up Insight Forge for "));var s=document.createElement("b");s.textContent=n;b.appendChild(s);if(w)b.appendChild(document.createTextNode(" \u00b7 "+w));b.hidden=false;}}catch(e){}
+  try{var qq=new URLSearchParams(location.search);Array.prototype.forEach.call(document.querySelectorAll(".flow [data-stage]"),function(a){var p=new URLSearchParams();p.set("stage",a.getAttribute("data-stage"));if(qq.get("name"))p.set("name",qq.get("name"));if(qq.get("site"))p.set("site",qq.get("site"));a.href="./?"+p.toString()})}catch(e){}
   var st=document.getElementById("status"),nx=document.getElementById("tonext");
   nx.href=(function(){var p=new URLSearchParams();p.set("stage","code");if(q.get("name"))p.set("name",q.get("name"));if(q.get("site"))p.set("site",q.get("site"));return "./?"+p.toString()})();
   function upd(){nx.hidden=!/saved/i.test(st.textContent||"")||/^Cancelled/.test(st.textContent||"");}
