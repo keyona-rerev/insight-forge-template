@@ -182,7 +182,7 @@ export const ApprovedTab = () => {
   const handleRetryAll = async () => {
     if (retryingAll || retryingId) return;
     setRetryingAll(true);
-    const queue = [...attentionDrafts].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    const queue = [...retryAllDrafts].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     let succeeded = 0;
     let stillStuck = 0;
     try {
@@ -257,10 +257,12 @@ export const ApprovedTab = () => {
   // surfaces as a false warning.
   const isStuck = (d: Draft) =>
     !isScheduling(d) &&
-    (d.publish_status === "needs_attention" || d.publish_status === "failed" || !d.publish_status);
+    (d.publish_status === "needs_attention" || d.publish_status === "failed" || d.publish_status === "cancelled" || !d.publish_status);
 
   const attentionDrafts = drafts.filter(isStuck);
   const attentionIds = new Set(attentionDrafts.map((d) => d.id));
+  // Retry all skips posts the owner cancelled; only their own Retry re-schedules one.
+  const retryAllDrafts = attentionDrafts.filter((d) => d.publish_status !== "cancelled");
   const schedulingDrafts = drafts.filter(isScheduling);
   const schedulingIds = new Set(schedulingDrafts.map((d) => d.id));
 
@@ -277,6 +279,9 @@ export const ApprovedTab = () => {
   const getAttentionMeta = (draft: Draft) => {
     if (draft.publish_status === "failed") {
       return { label: "Provider error", badgeClass: "bg-red-50 text-red-700 border-red-200", message: draft.publish_error || "No reason recorded." };
+    }
+    if (draft.publish_status === "cancelled") {
+      return { label: "Schedule cancelled", badgeClass: "bg-slate-100 text-slate-700 border-slate-300", message: draft.publish_error || "You cancelled this post's schedule. Retry to put it back on the schedule." };
     }
     if (draft.publish_status === "needs_attention") {
       return { label: "Not scheduled", badgeClass: "bg-amber-100 text-amber-800 border-amber-300", message: draft.publish_error || "No reason recorded." };
@@ -344,10 +349,10 @@ export const ApprovedTab = () => {
                   These drafts were approved, but no scheduled confirmation is on record. Read the note on each before retrying.
                 </CardDescription>
               </div>
-              {attentionDrafts.length > 1 && (
+              {retryAllDrafts.length > 1 && (
                 <Button size="sm" variant="outline" onClick={handleRetryAll} disabled={retryingAll || !!retryingId} className="shrink-0 bg-white">
                   <ListRestart className="h-4 w-4 mr-1" />
-                  {retryingAll ? `Retrying ${retryingId ? attentionDrafts.findIndex(d => d.id === retryingId) + 1 : 1} of ${attentionDrafts.length}...` : `Retry all ${attentionDrafts.length}`}
+                  {retryingAll ? `Retrying ${retryingId ? retryAllDrafts.findIndex(d => d.id === retryingId) + 1 : 1} of ${retryAllDrafts.length}...` : `Retry all ${retryAllDrafts.length}`}
                 </Button>
               )}
             </div>

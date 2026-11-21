@@ -160,7 +160,9 @@ const scheduleDraft = async (
       .update({ publish_status: "scheduling" })
       .eq("id", draft.id)
       .is("external_post_id", null)
-      .or("publish_status.is.null,publish_status.eq.needs_attention,publish_status.eq.failed")
+      // "cancelled" is claimable only here (an owner's own Retry); the
+      // sweeps never select it, so a cancelled post stays off the schedule.
+      .or("publish_status.is.null,publish_status.eq.needs_attention,publish_status.eq.failed,publish_status.eq.cancelled")
       .select("id")
       .maybeSingle();
     if (!claimed) {

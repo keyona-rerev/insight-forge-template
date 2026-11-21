@@ -55,7 +55,7 @@ export const ScheduleCalendar = () => {
         .select("id", { count: "exact", head: true })
         .eq("user_id", session?.user?.id)
         .eq("approval_status", "approved")
-        .or("publish_status.in.(needs_attention,failed),publish_status.is.null"),
+        .or("publish_status.in.(needs_attention,failed,cancelled),publish_status.is.null"),
     ]);
 
     setCadenceDays(new Set((cadence || []).map((c) => c.day_of_week)));

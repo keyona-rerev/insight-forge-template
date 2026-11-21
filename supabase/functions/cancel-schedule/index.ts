@@ -57,13 +57,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Clear the schedule fields so Post Now can fire fresh
+    // Mark it cancelled (not null). A null publish_status on an approved
+    // draft means "never scheduled" to the daily sweep and the connect
+    // retry, so clearing it made them schedule the post again. "cancelled"
+    // is skipped by both; Post Now, Reschedule and a manual Retry still work.
     await supabase
       .from("drafts")
       .update({
         external_post_id: null,
-        publish_status: null,
-        publish_error: null,
+        publish_status: "cancelled",
+        publish_error: "You cancelled this post's schedule. Post it now, reschedule it, or retry to put it back on the schedule.",
         scheduled_for: null,
       })
       .eq("id", draft.id);
