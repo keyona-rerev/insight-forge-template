@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { loadLessons, lessonsLines } from "../_shared/writing-lessons.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,6 +55,7 @@ function buildFreshGenerationSystemPrompt(
   voiceRules: string[],
   inlineAttribution: string,
   approvedCards: any[],
+  lessons: string[] = [],
 ): string {
   const sourceLine = (c: any) => {
     const summary = (c.ai_summary && String(c.ai_summary).trim()) ? String(c.ai_summary).trim() : String(c.original_text || "").slice(0, 400);
@@ -77,6 +79,7 @@ function buildFreshGenerationSystemPrompt(
     if (inlineAttribution) systemLines.push(`- Attribution: ${inlineAttribution}`);
     systemLines.push("");
   }
+  systemLines.push(...lessonsLines(lessons));
   systemLines.push("STATISTICS AND SOURCES");
   systemLines.push("- State a figure or statistic only if it is attributable to one of the TRUSTED SOURCES below. Never invent a number and never cite a source that is not listed.");
   systemLines.push("- Weave each citation into the prose. Do not write it as a parenthetical footnote.");
@@ -179,7 +182,7 @@ serve(async (req) => {
     });
 
     const identityLine = buildIdentityLine(profile?.business_name, profile?.business_description);
-    const system = buildFreshGenerationSystemPrompt(identityLine, hardRules, voiceRules, inlineAttribution, approvedCards);
+    const system = buildFreshGenerationSystemPrompt(identityLine, hardRules, voiceRules, inlineAttribution, approvedCards, await loadLessons(supabase, user.id));
     const contextBlock = buildSlotContextBlock({
       business_name: profile?.business_name, business_description: profile?.business_description, brand_voice: profile?.brand_voice,
       format, nature, job, lane: lane ?? null,

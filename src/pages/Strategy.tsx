@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LearnedLessons } from "@/components/strategy/LearnedLessons";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
@@ -884,6 +885,8 @@ const Strategy = () => {
                 </ul>
               )}
             </div>
+
+            <LearnedLessons />
 
             {/* Voice profile: structured rules plus the inline-attribution instruction, read
                 by the generator every run alongside the free-text Brand voice above. */}

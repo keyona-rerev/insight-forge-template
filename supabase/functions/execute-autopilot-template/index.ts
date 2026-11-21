@@ -1,3 +1,4 @@
+import { loadLessons, lessonsLines } from "../_shared/writing-lessons.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolveNext, type Frequency } from "../_shared/schedule-resolver.ts";
@@ -473,6 +474,7 @@ serve(async (req) => {
       if (inlineAttribution) systemLines.push(`- Attribution: ${inlineAttribution}`);
       systemLines.push("");
     }
+    systemLines.push(...lessonsLines(await loadLessons(supabase, userId)));
     systemLines.push("STATISTICS AND SOURCES");
     systemLines.push("- State a figure or statistic only if it is attributable to one of the TRUSTED SOURCES below. Never invent a number and never cite a source that is not listed.");
     systemLines.push("- Weave each citation into the prose. Do not write it as a parenthetical footnote.");

@@ -64,7 +64,7 @@ serve(async (req) => {
     // Read format/nature/job straight off the draft being revised - it
     // already carries them from when it was first generated, so revising it
     // doesn't need any new UI to re-pick them.
-    const { ctx, hardRules, voiceRules, inlineAttribution } = await loadStrategyContext(supabase, user.id, {
+    const { ctx, hardRules, voiceRules, inlineAttribution, lessons } = await loadStrategyContext(supabase, user.id, {
       formatId: draft.format_id, natureId: draft.nature_id, jobId: draft.job_id,
     });
     const strategyBlock = buildContextBlock(ctx);
@@ -85,7 +85,7 @@ Respond ONLY with valid JSON: {"title": "...", "content": "full revised content"
 
     const system = buildSystemPrompt(
       "You are a professional editor. Always respond with valid JSON only.",
-      hardRules, voiceRules, inlineAttribution
+      hardRules, voiceRules, inlineAttribution, lessons
     );
     // Subscription path: enqueue onto claude_jobs; the private worker (Claude
     // Code on the owner's Max subscription) does the AI work. No paid route.

@@ -92,7 +92,7 @@ serve(async (req) => {
     const { count: rateCount } = await supabase.from('rate_limit_logs').select('*', { count: 'exact', head: true }).eq('user_id', user.id).eq('action', 'generate_final').gte('created_at', windowStart.toISOString());
     if ((rateCount || 0) >= 100) return new Response(JSON.stringify({ error: 'Rate limit exceeded.' }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { ctx, hardRules, voiceRules, inlineAttribution } = await loadStrategyContext(supabase, user.id, { formatId, natureId, jobId });
+    const { ctx, hardRules, voiceRules, inlineAttribution, lessons } = await loadStrategyContext(supabase, user.id, { formatId, natureId, jobId });
 
     // A format whose declared minimum length cannot fit its platform's limit
     // would produce a draft that can never publish. Refuse before queuing.
@@ -128,7 +128,7 @@ Respond ONLY with valid JSON: {"title": "...", "content": "full markdown content
 
     const SYSTEM = buildSystemPrompt(
       "You are a professional content writer. Always respond with valid JSON only.",
-      hardRules, voiceRules, inlineAttribution
+      hardRules, voiceRules, inlineAttribution, lessons
     );
 
     const handle = await enqueueInteractiveJob(supabase, {

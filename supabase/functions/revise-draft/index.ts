@@ -1,3 +1,4 @@
+import { LESSON_INSTRUCTION, saveLesson } from "../_shared/writing-lessons.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { enqueueInteractiveJob, awaitInteractiveJob, findLatestGeneration } from "../_shared/claude-queue.ts";
@@ -94,7 +95,7 @@ serve(async (req) => {
     // regenerate-draft-with-feedback read, resolved off the draft's own
     // format/nature/job so the revised prose still matches the format and
     // nature it was originally generated for.
-    const { ctx, hardRules, voiceRules, inlineAttribution } = await loadStrategyContext(supabase, user.id, {
+    const { ctx, hardRules, voiceRules, inlineAttribution, lessons } = await loadStrategyContext(supabase, user.id, {
       formatId: draft.format_id, natureId: draft.nature_id, jobId: draft.job_id,
     });
     const strategyBlock = buildContextBlock(ctx);
@@ -129,7 +130,9 @@ ${tropeList}
 
 ${strategyBlock}
 
-Respond ONLY with valid JSON: {"title": "...", "content": "the fully revised post"}`
+${LESSON_INSTRUCTION}
+
+Respond ONLY with valid JSON: {"title": "...", "content": "the fully revised post", "lesson": "..."}`
       : `Rewrite this post's prose. This is a line-level editing pass, not a rewrite of the argument and not a fresh take on the topic.
 
 CURRENT CONTENT:
@@ -155,7 +158,7 @@ Respond ONLY with valid JSON: {"title": "...", "content": "the fully rewritten p
       notes
         ? "You are an editor revising a post for its owner. The owner's notes are your instructions: apply all of them, keep what they don't touch, and never invent facts or figures. Always respond with valid JSON only."
         : "You are a sharp, unsentimental line editor. Your only job on this pass is prose quality: cut the specific tropes you're given, and leave everything else -- the argument, the facts, the structure -- intact. Always respond with valid JSON only.",
-      hardRules, voiceRules, inlineAttribution
+      hardRules, voiceRules, inlineAttribution, lessons
     );
     // Subscription path: enqueue the edit pass onto claude_jobs; the private
     // worker (Claude Code on the owner's Max subscription) does the AI work.
@@ -215,8 +218,11 @@ Respond ONLY with valid JSON: {"title": "...", "content": "the fully rewritten p
       );
     }
 
+    // Notes become a saved lesson for future drafts (when they are general).
+    const savedLesson = notes ? await saveLesson(supabase, user.id, result.lesson, draftId, notes) : null;
+
     return new Response(
-      JSON.stringify({ success: true, title: result.title || draft.title, content: result.content, revisionCount: currentVersion, updatedAt: casRows[0].updated_at }),
+      JSON.stringify({ success: true, title: result.title || draft.title, content: result.content, revisionCount: currentVersion, updatedAt: casRows[0].updated_at, lesson: savedLesson }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

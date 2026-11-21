@@ -228,6 +228,24 @@ export const PendingTab = () => {
   // argument, facts, or figures. Unlike Approve/Reject, the draft never
   // leaves this list -- it just updates in place so it can still be
   // reviewed, revised again, or approved right after.
+  // A general lesson from the Revise notes is saved so every future draft
+  // follows it (see the Strategy page, "Learned from your edits").
+  const saveLesson = async (raw: unknown, draftId: string, notes: string): Promise<string | null> => {
+    if (typeof raw !== "string") return null;
+    const lesson = raw.replace(/\s+/g, " ").trim();
+    if (lesson.length < 8 || lesson.length > 300 || /^(none|n\/a|no lesson|null)\.?$/i.test(lesson)) return null;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.id) return null;
+    const { error } = await supabase.from("writing_lessons" as any).insert({
+      user_id: session.user.id, lesson, source_draft_id: draftId, source_notes: notes.slice(0, 2000),
+    });
+    return error ? null : lesson;
+  };
+  const announceRevised = (msg: string, lesson: string | null) => {
+    if (lesson) toast.success(msg, { description: `Future drafts will follow this too: ${lesson}` });
+    else toast.success(msg);
+  };
+
   const handleRevise = async (draftId: string, notesInput = "") => {
     if (transitioning[draftId]) return;
     const notes = notesInput.trim();
@@ -256,7 +274,7 @@ export const PendingTab = () => {
         const m = content.match(/(\{[\s\S]*\})/);
         return JSON.parse(m ? m[1] : content);
       };
-      let result: { title?: string; content?: string } | null = null;
+      let result: { title?: string; content?: string; lesson?: string } | null = null;
       let completedUnreadable = false;
       for (let i = 0; i < 60; i++) {
         await new Promise(r => setTimeout(r, 5000));
@@ -308,7 +326,8 @@ export const PendingTab = () => {
       }
       setDrafts(prev => prev.map(d => d.id === draftId ? { ...d, title: result.title || d.title, body: result.content!, revision_count: preCount + 1, updated_at: casRows[0].updated_at } : d));
       clearTransition(draftId);
-      toast.success(doneMsg);
+      const lesson = notes ? await saveLesson(result.lesson, draftId, notes) : null;
+      announceRevised(doneMsg, lesson);
       return;
     }
 
@@ -324,7 +343,7 @@ export const PendingTab = () => {
 
     setDrafts(prev => prev.map(d => d.id === draftId ? { ...d, title: data.title, body: data.content, ...(data.updatedAt ? { updated_at: data.updatedAt } : {}) } : d));
     clearTransition(draftId);
-    toast.success(doneMsg);
+    announceRevised(doneMsg, typeof data?.lesson === "string" ? data.lesson : null);
   };
 
   const handleSmartReject = (draft: Draft) => {
@@ -669,7 +688,7 @@ export const PendingTab = () => {
               autoFocus
             />
             <p className="text-sm text-muted-foreground">
-              The AI rewrites the draft to follow your notes and keeps everything else. With no notes, it only cleans up common AI phrasing. The draft stays here so you can review it again.
+              The AI rewrites the draft to follow your notes and keeps everything else. If a note applies to posts in general, future drafts follow it too (see Strategy, "Learned from your edits"). With no notes, it only cleans up common AI phrasing.
             </p>
           </div>
           <DialogFooter>

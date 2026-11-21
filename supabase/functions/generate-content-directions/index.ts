@@ -77,7 +77,7 @@ serve(async (req) => {
       }
     }
 
-    const { ctx, hardRules, voiceRules, inlineAttribution } = await loadStrategyContext(supabase, user.id, { formatId, natureId, jobId });
+    const { ctx, hardRules, voiceRules, inlineAttribution, lessons } = await loadStrategyContext(supabase, user.id, { formatId, natureId, jobId });
 
     // A format whose declared minimum length cannot fit its platform's limit
     // would produce a draft that can never publish. Refuse before queuing.
@@ -116,7 +116,7 @@ Respond ONLY with valid JSON:
 
     const SYSTEM = buildSystemPrompt(
       "You are a creative content strategist. Always respond with valid JSON only, no markdown.",
-      hardRules, voiceRules, inlineAttribution
+      hardRules, voiceRules, inlineAttribution, lessons
     );
 
     const handle = await enqueueInteractiveJob(supabase, {

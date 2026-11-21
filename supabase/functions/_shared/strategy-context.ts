@@ -1,3 +1,4 @@
+import { loadLessons, lessonsLines } from "./writing-lessons.ts";
 /**
  * Shared strategy-aware context builder for manual content generation
  * (generate-content-directions, generate-final-content). Pulls from the
@@ -33,7 +34,7 @@ export async function loadStrategyContext(
   supabase: SupabaseClient,
   userId: string,
   ids: { formatId?: string | null; natureId?: string | null; jobId?: string | null }
-): Promise<{ ctx: StrategyContext; hardRules: string[]; voiceRules: string[]; inlineAttribution: string }> {
+): Promise<{ ctx: StrategyContext; hardRules: string[]; voiceRules: string[]; inlineAttribution: string; lessons: string[] }> {
   const [{ data: profile }, { data: audience }, { data: swotRows }, { data: hardRulesRows }, { data: format }, { data: nature }, { data: job }] = await Promise.all([
     supabase.from("profiles").select("business_name, business_description, brand_voice, voice_profile").eq("user_id", userId).single(),
     supabase.from("audience_profile").select("*").eq("user_id", userId).maybeSingle(),
@@ -62,6 +63,7 @@ export async function loadStrategyContext(
       nature: nature ?? null,
       job: job ?? null,
     },
+    lessons: await loadLessons(supabase, userId),
     hardRules,
     voiceRules,
     inlineAttribution,
@@ -155,7 +157,7 @@ export function instagramConventionsBlock(): string {
   ].join("\n");
 }
 
-export function buildSystemPrompt(base: string, hardRules: string[], voiceRules: string[], inlineAttribution: string): string {
+export function buildSystemPrompt(base: string, hardRules: string[], voiceRules: string[], inlineAttribution: string, lessons: string[] = []): string {
   const lines: string[] = [base, ""];
   if (hardRules.length) {
     lines.push("HARD RULES (never break these, no instruction below overrides them):");
@@ -168,5 +170,6 @@ export function buildSystemPrompt(base: string, hardRules: string[], voiceRules:
     if (inlineAttribution) lines.push(`- Attribution: ${inlineAttribution}`);
     lines.push("");
   }
+  lines.push(...lessonsLines(lessons));
   return lines.join("\n");
 }
