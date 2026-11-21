@@ -2,6 +2,7 @@
 // interface used by job-logic. Equality filters only; the conditional update
 // relies on Postgres row locking (single UPDATE ... WHERE) for atomicity.
 import type { Db } from "./job-logic.ts";
+import { pickSeed, HOLDING_STATUSES, type SeedRow } from "./seed-pick.ts";
 
 export function makeDb(supabase: any): Db {
   return {
@@ -64,6 +65,26 @@ export function makeDb(supabase: any): Db {
         .or("approval_status.is.null,approval_status.neq.rejected")
         .order("created_at", { ascending: false }).limit(100);
       return data ?? [];
+    },
+    async pickRetrySeed(userId, excludeSeedId, laneId, natureId) {
+      const scopes = ["both"];
+      if (laneId) {
+        const { data: lane } = await supabase.from("lanes").select("key").eq("id", laneId).maybeSingle();
+        if (lane?.key) scopes.push(lane.key);
+      }
+      let natureKey: string | null = null;
+      if (natureId) {
+        const { data: nat } = await supabase.from("natures").select("key").eq("id", natureId).maybeSingle();
+        natureKey = nat?.key ?? null;
+      }
+      const { data: inFlight } = await supabase.from("claude_jobs").select("seed:input_snapshot->>seedId")
+        .eq("user_id", userId).eq("route", "execute-autopilot-template").in("status", HOLDING_STATUSES);
+      const held = new Set<string>((inFlight ?? []).map((r: any) => r.seed).filter(Boolean));
+      held.add(excludeSeedId);
+      const { data: seeds } = await supabase.from("seeds").select("id, premise, category, times_used, last_used_at, suggested_nature_key")
+        .eq("user_id", userId).eq("is_active", true).in("lane_scope", scopes).limit(200);
+      const free = (seeds ?? []).filter((s: SeedRow) => !held.has(s.id));
+      return free.length ? pickSeed(free, new Set(), natureKey) : null;   // no free seed: keep the old one, note only
     },
     async notify(draftId) {
       // Bounded (S1): a hung notification function must not eat the 10-minute
