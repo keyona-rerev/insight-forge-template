@@ -51,7 +51,7 @@ JSON RULES (the app rejects the pack if a rule fails)
 - hard_rules: 3 or more strings. Each is a do-not-say or framing rule the writer must always keep.
 - lanes: 2 or more. Each: key, name, is_wedge (true for one), description, vocabulary (list).
 - readers: 2 or more. Each: key, role, who, side (decision or end_user), lane_scope (a lane key), questions (2 or more).
-- formats: 3 or more. Each: key, name, platform (linkedin or instagram), definition (20+ characters), min_words, max_words.
+- formats: 3 or more. Each: key, name, platform (linkedin or instagram), definition (20+ characters), min_words, max_words. Multi-slide LinkedIn document carousels (PDF slide posts) are not supported; do not propose a carousel format.
 - natures: 4 or more. Each: key, name, move (20+ characters: how the post argues), evidence_type, fit (high, medium or low).
 - jobs: 3 or more. Each: key, name, description, funnel_stage (tofu, mofu or bofu).
 - schedule: 3 or more slots, and at least 2 with frequency weekly. Each: format, nature, job (keys from the lists above), optional lane and reader keys, day_of_week (0 Sunday to 6 Saturday), frequency (weekly, biweekly, monthly, quarterly), time (HH:MM). Propose a realistic rhythm for this business, 3 posts a week at most.
