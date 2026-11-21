@@ -50,6 +50,59 @@ serve(async (req) => {
       );
     }
 
+    // Files from the client's own Google Drive folder (setup-wizard DriveImport.gs sends sender "drive-folder"
+    // and message_id "drive:<fileId>"). They are the business's OWN content, so they are stored as first-party
+    // "drive" cards, kept, and never logged as newsletter emails (that would put them in the newsletter health scan).
+    const isDrive = sender === "drive-folder" || (typeof message_id === "string" && message_id.startsWith("drive:"));
+    if (isDrive) {
+      const fileId = typeof message_id === "string" ? message_id.replace(/^drive:/, "") : "";
+      const sourceUrl = fileId ? `https://drive.google.com/open?id=${fileId}` : null;
+      if (sourceUrl) {
+        const { data: dup } = await supabase
+          .from("reference_cards").select("id")
+          .eq("user_id", user_id).eq("source_url", sourceUrl).limit(1).maybeSingle();
+        if (dup) {
+          return new Response(
+            JSON.stringify({ success: true, skipped: true, reason: "already_processed", cardId: dup.id }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+      const driveText = body.length > 50000 ? body.substring(0, 50000) + "... [truncated]" : body;
+      const { data: dcard, error: dErr } = await supabase
+        .from("reference_cards")
+        .insert({
+          user_id,
+          title: subject || "Drive file",
+          original_text: driveText,
+          source_type: "drive",
+          source_url: sourceUrl,
+          status: "processing",
+          global_relevance_score: null,
+          relevance_state: "unscored",
+          from_company: true,
+          force_keep: true,
+        })
+        .select()
+        .single();
+      if (dErr) {
+        console.error("❌ Failed to create Drive reference card:", dErr);
+        return new Response(
+          JSON.stringify({ error: "Failed to create reference card", details: dErr.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      try {
+        await supabase.functions.invoke("process-reference-card", { body: { cardId: dcard.id } });
+      } catch (e) {
+        console.error("⚠️ Error triggering AI processing:", e);
+      }
+      return new Response(
+        JSON.stringify({ success: true, cardId: dcard.id, sourceType: "drive", fromCompany: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (message_id) {
       const { data: existing } = await supabase
         .from("newsletter_emails")

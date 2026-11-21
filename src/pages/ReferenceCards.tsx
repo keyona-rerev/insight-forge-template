@@ -468,6 +468,8 @@ const ReferenceCards = () => {
               <SelectItem value="rss">Google Alert</SelectItem>
               <SelectItem value="journal">Journal</SelectItem>
               <SelectItem value="manual">Manual</SelectItem>
+              <SelectItem value="drive">Google Drive folder</SelectItem>
+              <SelectItem value="newsletter">Newsletter</SelectItem>
               <SelectItem value="perplexity">Perplexity</SelectItem>
               <SelectItem value="observation">Observation Journal</SelectItem>
             </SelectContent>
