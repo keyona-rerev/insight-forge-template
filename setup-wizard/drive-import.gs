@@ -48,7 +48,9 @@ function importFolder() {
   files.forEach(function (f) { var s = props.getProperty('drv_' + f.getId()); if (!s || s === 'short') left++; });
   var summary = 'Found ' + files.length + ' file(s). Sent ' + sent + '. Skipped ' + skipped + '. Still waiting: ' + left + '.' +
     (readErrors ? ' Could not read ' + readErrors + ' file(s) this run; the script tries them again next run.' : '') +
-    (retry ? ' The app was unreachable. The script tries again tomorrow.' : '');
+    (retry ? (appNotReady_
+      ? ' The app is not ready yet: the install has not run, or a value in Code.gs is wrong. Nothing was lost. The script tries again every day, or run importFolder() again after the install.'
+      : ' The app was unreachable. The script tries again tomorrow.') : '');
   Logger.log(summary);
   Object.keys(unreadable).forEach(function (k) {
     Logger.log('Could not read ' + unreadable[k] + ' file(s) of type ' + k + '. Save them as a Google Doc or a text file.');
@@ -109,12 +111,16 @@ function sendDriveFile_(file, text) {
     var code = res.getResponseCode();
     Logger.log(code + ' ' + file.getName() + ' ' + res.getContentText().slice(0, 120));
     if (code >= 200 && code < 300) return 'ok';
+    // 401/403/404: the app is not installed yet, or a value in Code.gs is wrong. Keep the file and try again later.
+    if (code === 401 || code === 403 || code === 404) { appNotReady_ = true; return 'retry'; }
     return code >= 500 || code === 429 ? 'retry' : 'bad';
   } catch (e) {
     Logger.log('Network error: ' + e);
     return 'retry';
   }
 }
+
+var appNotReady_ = false;
 
 function ensureDailyTrigger_() {
   var has = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'importFolder'; });
