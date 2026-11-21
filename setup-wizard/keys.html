@@ -541,7 +541,27 @@ go(0,true);
 function build(){
   var L=["INSIGHT FORGE KEYS. Made on "+new Date().toISOString().slice(0,10)+". Keep private. Never commit, sync or email.",""];
   F.forEach(function(f){var v=els[f.v].inp.value.trim().replace(/[\r\n]+/g," ");L.push(f.v+" = "+v)});L.push("IMAGES = YES");
-  return L.join("\r\n")+"\r\n"}
+  return L.join("\r\n")+"\r\n"+links()}
+// LINKS: one line per thing this install uses, with its direct link. "Label: URL"
+// lines (no "=") so loadKeys() and preflight.py skip them.
+function links(){
+  var o=[],add=function(l,u){if(u)o.push(l+": "+u)};
+  var gh=V("GITHUB_USERNAME"),app=V("APP_REPO_OWNER_SLASH_NAME"),wk=V("WORKER_REPO_OWNER_SLASH_NAME"),ref=V("SUPABASE_PROJECT_REF_20_LETTERS"),gs=V("GMAIL_SCRIPT_URL");
+  var base=location.origin+location.pathname.replace(/[^\/]*$/,"");
+  add("Keys page",base+"keys.html");add("Install wizard",base);
+  if(gh)add("GitHub profile","https://github.com/"+gh);
+  if(app){var a=app.split("/");add("App repo","https://github.com/"+app);add("App build secrets","https://github.com/"+app+"/settings/secrets/actions");
+    add("App build page","https://github.com/"+app+"/actions/workflows/deploy-pages.yml");if(a[0]&&a[1])add("App address","https://"+a[0]+".github.io/"+a[1]+"/");}
+  if(wk){add("Worker repo","https://github.com/"+wk);add("Worker secrets","https://github.com/"+wk+"/settings/secrets/actions");
+    add("Worker runs","https://github.com/"+wk+"/actions");add("Connect button","https://github.com/"+wk+"/actions/workflows/connect-install.yml");}
+  if(/^[a-z]{20}$/.test(ref)){var p="https://supabase.com/dashboard/project/"+ref;add("Supabase project",p);add("Supabase login users",p+"/auth/users");
+    add("Supabase function secrets",p+"/functions/secrets");add("Supabase API keys",p+"/settings/api-keys");add("Supabase function logs",p+"/functions");}
+  if(gs){add("Newsletter reader script",gs);var m=gs.match(/projects\/([A-Za-z0-9_-]{20,})/);
+    if(m){add("Newsletter script runs (Executions)","https://script.google.com/home/projects/"+m[1]+"/executions");add("Newsletter script triggers","https://script.google.com/home/projects/"+m[1]+"/triggers");}
+    add("All my Apps Script triggers","https://script.google.com/home/triggers");}
+  add("Resend API keys","https://resend.com/api-keys");add("Zernio dashboard","https://zernio.com/dashboard");
+  return "\r\nLINKS (no secrets here; open these to check or change the install)\r\n"+o.join("\r\n")+"\r\n";
+}
 var defFolder=(function(){try{var q=new URLSearchParams(location.search).get("folder");if(q&&q.length<260)return q}catch(e){}return "%USERPROFILE%\\insight-forge-keys"})();
 var fp=document.getElementById("folderpath");fp.value=defFolder;
 document.getElementById("copyfolder").onclick=function(){copy(fp.value,this)};
